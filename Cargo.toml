@@ -1,0 +1,18 @@
+[package]
+name = "cyclic-tower"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.14.0"
+bevy_ecs_ldtk = "0.10.0"
+bevy_rapier2d = "0.27.0"
+
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
+
