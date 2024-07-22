@@ -42,38 +42,9 @@ fn update_player_grounded(
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok(mut player_status) = query_player.get_single_mut() {
             player_status.grounded = rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() != None;
-            // // let grounded = false;
-            // for collision_event in collision_events.read() {
-            //     match collision_event {
-            //         CollisionEvent::Started(entity_1, entity_2, _) => {
-            //             if *entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity {
-            //                 player_status.grounded = true;
-            //                 println!("grounded");
-            //                 break;
-            //             }
-            //         }
-            //         CollisionEvent::Stopped(entity_1, entity_2, _) => {
-            //             if (*entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity) && rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() == None {
-            //                 player_status.grounded = false;
-            //                 println!("ungrounded");
-            //             } else {
-            //                 println!("collision stopped but not ungrounded");
-            //                 println!("{:?}", rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek().unwrap());
-            //             }
-            //         }
-            //     }
-            // }
         }
     }
 }
-
-// fn update_player_grounded(mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>, query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>, rapier_context: Res<RapierContext>,) {
-//     if let Ok(player_jump_collider_entity) = query_player_jump_collider.get_single() {
-//         if let Ok(mut player_status) = query_player.get_single_mut() {
-//             player_status.grounded = rapier_context.intersection_pairs_with(player_jump_collider_entity).peekable().peek() != None;
-//         }
-//     }
-// }
 
 fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
@@ -90,7 +61,6 @@ fn move_player(
 ) {
     if let Ok((player_entity, mut player_velocity, mut spring_force, transform, mut player_status)) = query_player.get_single_mut() {
         // spring force
-        // println!("transform {:?}", transform.translation);
         const SPRING_CONSTANT: f32 = 15000.0;
         let ray_pos = transform.translation.xy();
         let ray_dir = -1. * Vec2::Y;
@@ -99,14 +69,8 @@ fn move_player(
         let filter = QueryFilter::default().exclude_sensors().exclude_collider(player_entity);
         if rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).is_some() && player_status.grounded {
             let (_, toi) = rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).unwrap();
-            // The first collider hit has the entity `entity` and it hit after
-            // the ray travelled a distance equal to `ray_dir * toi`.
             let dist = ray_dir.length() * (max_toi  - toi);
-            // dist = if dist.is_sign_positive() { 1. } else { 0.8 } * dist;
-            // dist = if dist.is_sign_positive() { 1. } else { -1. } * dist.abs().sqrt();
             spring_force.force = dist * SPRING_CONSTANT * Vec2::Y - SPRING_CONSTANT / 5. * player_velocity.linvel.y * Vec2::Y;
-            println!("force {:?} transform {:?}", spring_force.force, transform.translation);
-            // println!("Entity {:?} hit at point {}", entity, hit_point);
         } else {
             spring_force.force = Vec2::ZERO;
         }
@@ -219,7 +183,7 @@ impl Default for TerrainBundle {
         Self {
             terrain_marker: TerrainMarker,
             rigid_body: RigidBody::Fixed,
-            collider: Collider::round_cuboid(8., 7., 1.),
+            collider: Collider::round_cuboid(7., 7., 1.),
         }
     }
 }
