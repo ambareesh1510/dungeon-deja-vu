@@ -34,34 +34,35 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
 }
 
 fn update_player_grounded(
-    mut collision_events: EventReader<CollisionEvent>,
+    // mut collision_events: EventReader<CollisionEvent>,
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
     mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok(mut player_status) = query_player.get_single_mut() {
-            // let grounded = false;
-            for collision_event in collision_events.read() {
-                match collision_event {
-                    CollisionEvent::Started(entity_1, entity_2, _) => {
-                        if *entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity {
-                            player_status.grounded = true;
-                            println!("grounded");
-                            break;
-                        }
-                    }
-                    CollisionEvent::Stopped(entity_1, entity_2, _) => {
-                        if (*entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity) && rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() == None {
-                            player_status.grounded = false;
-                            println!("ungrounded");
-                        } else {
-                            println!("collision stopped but not ungrounded");
-                            println!("{:?}", rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek().unwrap());
-                        }
-                    }
-                }
-            }
+            player_status.grounded = rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() != None;
+            // // let grounded = false;
+            // for collision_event in collision_events.read() {
+            //     match collision_event {
+            //         CollisionEvent::Started(entity_1, entity_2, _) => {
+            //             if *entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity {
+            //                 player_status.grounded = true;
+            //                 println!("grounded");
+            //                 break;
+            //             }
+            //         }
+            //         CollisionEvent::Stopped(entity_1, entity_2, _) => {
+            //             if (*entity_1 == player_jump_controller_entity || *entity_2 == player_jump_controller_entity) && rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() == None {
+            //                 player_status.grounded = false;
+            //                 println!("ungrounded");
+            //             } else {
+            //                 println!("collision stopped but not ungrounded");
+            //                 println!("{:?}", rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek().unwrap());
+            //             }
+            //         }
+            //     }
+            // }
         }
     }
 }
@@ -82,14 +83,38 @@ fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn move_player(
-    mut query_player: Query<(Entity, &mut Velocity, &Transform, &mut PlayerStatus), With<PlayerMarker>>,
+    mut query_player: Query<(Entity, &mut Velocity, &mut ExternalForce, &Transform, &mut PlayerStatus), With<PlayerMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     rapier_context: Res<RapierContext>,
     time: Res<Time>,
 ) {
-    if let Ok((player_entity, mut player_velocity, transform, mut player_status)) = query_player.get_single_mut() {
+    if let Ok((player_entity, mut player_velocity, mut spring_force, transform, mut player_status)) = query_player.get_single_mut() {
+        // spring force
+        // println!("transform {:?}", transform.translation);
+        const SPRING_CONSTANT: f32 = 15000.0;
+        let ray_pos = transform.translation.xy();
+        let ray_dir = -1. * Vec2::Y;
+        let max_toi = 10.;
+        let solid = true;
+        let filter = QueryFilter::default().exclude_sensors().exclude_collider(player_entity);
+        if rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).is_some() && player_status.grounded {
+            let (_, toi) = rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).unwrap();
+            // The first collider hit has the entity `entity` and it hit after
+            // the ray travelled a distance equal to `ray_dir * toi`.
+            let dist = ray_dir.length() * (max_toi  - toi);
+            // dist = if dist.is_sign_positive() { 1. } else { 0.8 } * dist;
+            // dist = if dist.is_sign_positive() { 1. } else { -1. } * dist.abs().sqrt();
+            spring_force.force = dist * SPRING_CONSTANT * Vec2::Y - SPRING_CONSTANT / 5. * player_velocity.linvel.y * Vec2::Y;
+            println!("force {:?} transform {:?}", spring_force.force, transform.translation);
+            // println!("Entity {:?} hit at point {}", entity, hit_point);
+        } else {
+            spring_force.force = Vec2::ZERO;
+        }
+
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
+            spring_force.force = Vec2::ZERO;
+            player_status.grounded = false;
         }
         // player_velocity.linvel = Vec2::ZERO;
         if keys.pressed(KeyCode::ArrowRight) {
@@ -101,13 +126,16 @@ fn move_player(
         if keys.pressed(KeyCode::ArrowUp) && player_status.grounded {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
-                player_velocity.linvel += 125. * Vec2::Y;
+                player_velocity.linvel = 165. * Vec2::Y;
+                spring_force.force = Vec2::ZERO;
                 player_status.grounded = false;
                 player_status.jump_cooldown.reset();
             }
         }
-
         player_velocity.linvel.x /= 1.6;
+        if player_velocity.linvel.x.abs() < 0.1 {
+            player_velocity.linvel.x = 0.;
+        }
     }
 }
 
@@ -133,8 +161,11 @@ struct PlayerBundle {
     player_status: PlayerStatus,
     rigid_body: RigidBody,
     collider: Collider,
+    mass: AdditionalMassProperties,
     velocity: Velocity,
     friction: Friction,
+    restitution: Restitution,
+    spring_force: ExternalForce,
     locked_axes: LockedAxes,
 }
 
@@ -152,11 +183,21 @@ impl Default for PlayerBundle {
                 max_air_jumps: 1,
             },
             rigid_body: RigidBody::Dynamic,
-            collider: Collider::round_cuboid(6., 6., 2.),
+            // collider: Collider::cuboid(5., 5.),
+            collider: Collider::round_cuboid(5., 5., 2.),
+            mass: AdditionalMassProperties::Mass(50.),
             velocity: Velocity::default(),
             friction: Friction {
                 coefficient: 0.,
                 combine_rule: CoefficientCombineRule::Min,
+            },
+            restitution: Restitution {
+                coefficient: 0.,
+                combine_rule: CoefficientCombineRule::Min,
+            },
+            spring_force: ExternalForce {
+                // force: Vec2::Y * 100.,
+                ..default()
             },
             locked_axes: LockedAxes::ROTATION_LOCKED,
         }
@@ -178,7 +219,7 @@ impl Default for TerrainBundle {
         Self {
             terrain_marker: TerrainMarker,
             rigid_body: RigidBody::Fixed,
-            collider: Collider::round_cuboid(7., 7., 1.),
+            collider: Collider::round_cuboid(8., 7., 1.),
         }
     }
 }
