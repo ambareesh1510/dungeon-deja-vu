@@ -1,13 +1,12 @@
+use crate::level::PlayerMarker;
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_ecs_ldtk::LayerMetadata;
-use crate::level::PlayerMarker;
 
 pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, setup_camera)
+        app.add_systems(Update, setup_camera)
             // .add_systems(Update, control_camera)
             .add_systems(Update, attach_player_camera_to_player)
             .add_systems(Update, autoscroll_camera)
@@ -27,7 +26,6 @@ pub struct PlayerCameraMarker;
 #[derive(Component)]
 struct MainCameraMarker;
 
-
 fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
     for level in query_level.iter() {
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
@@ -35,7 +33,12 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
             let mut player_camera = Camera2dBundle::default();
             player_camera.projection.scale = 0.5;
             player_camera.camera.order = PLAYER_CAMERA_ORDER;
-            commands.spawn((player_camera, PlayerCameraMarker, CameraMarker, PLAYER_RENDER_LAYER));
+            commands.spawn((
+                player_camera,
+                PlayerCameraMarker,
+                CameraMarker,
+                PLAYER_RENDER_LAYER,
+            ));
 
             let mut main_camera = Camera2dBundle::default();
             main_camera.projection.scale = 0.5;
@@ -50,7 +53,13 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
     }
 }
 
-fn control_camera(mut query_camera: Query<(&mut Transform, &mut OrthographicProjection), With<PlayerCameraMarker>>, keys: Res<ButtonInput<KeyCode>>) {
+fn control_camera(
+    mut query_camera: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        With<PlayerCameraMarker>,
+    >,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
     if let Ok((mut camera_transform, mut camera_projection)) = query_camera.get_single_mut() {
         if keys.pressed(KeyCode::KeyW) {
             camera_transform.translation.y += 1.;
@@ -75,11 +84,23 @@ fn control_camera(mut query_camera: Query<(&mut Transform, &mut OrthographicProj
 
 // TODO: make this use delta time!
 fn attach_player_camera_to_player(
-    mut query_player_camera: Query<&mut Transform, (With<PlayerCameraMarker>, Without<PlayerMarker>)>,
-    mut query_main_camera: Query<&mut Transform, (With<MainCameraMarker>, (Without<PlayerMarker>, Without<PlayerCameraMarker>))>,
-    query_player: Query<&Transform, With<PlayerMarker>>
+    mut query_player_camera: Query<
+        &mut Transform,
+        (With<PlayerCameraMarker>, Without<PlayerMarker>),
+    >,
+    mut query_main_camera: Query<
+        &mut Transform,
+        (
+            With<MainCameraMarker>,
+            (Without<PlayerMarker>, Without<PlayerCameraMarker>),
+        ),
+    >,
+    query_player: Query<&Transform, With<PlayerMarker>>,
 ) {
-    if let (Ok(mut player_camera_transform), Ok(player_transform)) = (query_player_camera.get_single_mut(), query_player.get_single()) {
+    if let (Ok(mut player_camera_transform), Ok(player_transform)) = (
+        query_player_camera.get_single_mut(),
+        query_player.get_single(),
+    ) {
         let delta = (player_transform.translation.y - 10.0) - player_camera_transform.translation.y;
         player_camera_transform.translation.y += delta / 3.;
         for mut main_camera_transform in query_main_camera.iter_mut() {
@@ -110,6 +131,6 @@ fn autoscroll_camera(
     time: Res<Time>,
 ) {
     for mut camera_transform in query_cameras.iter_mut() {
-        camera_transform.translation.x += 0.7 * time.delta_seconds() * 60.;
+        camera_transform.translation.x += 0.4 * time.delta_seconds() * 60.;
     }
 }
