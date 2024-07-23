@@ -1,7 +1,7 @@
-use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
-use bevy_rapier2d::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
+use bevy_rapier2d::prelude::*;
+use std::time::Duration;
 
 use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
 
@@ -9,15 +9,15 @@ pub struct LevelManagementPlugin;
 
 impl Plugin for LevelManagementPlugin {
     fn build(&self, app: &mut App) {
-            app.add_plugins(LdtkPlugin)
-                .insert_resource(LevelSelection::index(0))
-                .register_ldtk_entity::<PlayerBundle>("Player")
-                .register_ldtk_int_cell::<TerrainBundle>(1)
-                .add_systems(Startup, spawn_level)
-                .add_systems(Update, add_collider)
-                .add_systems(Update, update_player_grounded)
-                .add_systems(Update, move_player)
-                .add_systems(Update, loop_player);
+        app.add_plugins(LdtkPlugin)
+            .insert_resource(LevelSelection::index(0))
+            .register_ldtk_entity::<PlayerBundle>("Player")
+            .register_ldtk_int_cell::<TerrainBundle>(1)
+            .add_systems(Startup, spawn_level)
+            .add_systems(Update, add_collider)
+            .add_systems(Update, update_player_grounded)
+            .add_systems(Update, move_player)
+            .add_systems(Update, loop_player);
     }
 }
 
@@ -42,7 +42,11 @@ fn update_player_grounded(
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok(mut player_status) = query_player.get_single_mut() {
-            player_status.grounded = rapier_context.intersection_pairs_with(player_jump_controller_entity).peekable().peek() != None;
+            player_status.grounded = rapier_context
+                .intersection_pairs_with(player_jump_controller_entity)
+                .peekable()
+                .peek()
+                != None;
         }
     }
 }
@@ -55,23 +59,49 @@ fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn move_player(
-    mut query_player: Query<(Entity, &mut Velocity, &mut ExternalForce, &Transform, &mut PlayerStatus), With<PlayerMarker>>,
+    mut query_player: Query<
+        (
+            Entity,
+            &mut Velocity,
+            &mut ExternalForce,
+            &Transform,
+            &mut PlayerStatus,
+        ),
+        With<PlayerMarker>,
+    >,
     keys: Res<ButtonInput<KeyCode>>,
     rapier_context: Res<RapierContext>,
     time: Res<Time>,
 ) {
-    if let Ok((player_entity, mut player_velocity, mut spring_force, transform, mut player_status)) = query_player.get_single_mut() {
-        // spring force
+    if let Ok((
+        player_entity,
+        mut player_velocity,
+        mut spring_force,
+        transform,
+        mut player_status,
+    )) = query_player.get_single_mut()
+    {
+        // spring force added here so that the screen does not shake when the character walks over
+        // grid boundaries
         const SPRING_CONSTANT: f32 = 15000.0;
         let ray_pos = transform.translation.xy();
         let ray_dir = -1. * Vec2::Y;
         let max_toi = 10.;
         let solid = true;
-        let filter = QueryFilter::default().exclude_sensors().exclude_collider(player_entity);
-        if rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).is_some() && player_status.grounded {
-            let (_, toi) = rapier_context.cast_ray(ray_pos, ray_dir, max_toi, solid, filter).unwrap();
-            let dist = ray_dir.length() * (max_toi  - toi);
-            spring_force.force = dist * SPRING_CONSTANT * Vec2::Y - SPRING_CONSTANT / 5. * player_velocity.linvel.y * Vec2::Y;
+        let filter = QueryFilter::default()
+            .exclude_sensors()
+            .exclude_collider(player_entity);
+        if rapier_context
+            .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
+            .is_some()
+            && player_status.grounded
+        {
+            let (_, toi) = rapier_context
+                .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
+                .unwrap();
+            let dist = ray_dir.length() * (max_toi - toi);
+            spring_force.force = dist * SPRING_CONSTANT * Vec2::Y
+                - SPRING_CONSTANT / 5. * player_velocity.linvel.y * Vec2::Y;
         } else {
             spring_force.force = Vec2::ZERO;
         }
@@ -91,7 +121,7 @@ fn move_player(
         if keys.pressed(KeyCode::ArrowUp) && player_status.grounded {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
-                player_velocity.linvel = 165. * Vec2::Y;
+                player_velocity.linvel = 100. * Vec2::Y;
                 spring_force.force = Vec2::ZERO;
                 player_status.grounded = false;
                 player_status.jump_cooldown.reset();
@@ -105,7 +135,10 @@ fn move_player(
 }
 
 fn loop_player(
-    mut query_player_camera: Query<&mut Transform, (With<PlayerCameraMarker>, Without<PlayerMarker>)>,
+    mut query_player_camera: Query<
+        &mut Transform,
+        (With<PlayerCameraMarker>, Without<PlayerMarker>),
+    >,
     mut query_player: Query<&mut Transform, With<PlayerMarker>>,
     query_level: Query<&LayerMetadata>,
 ) {
@@ -127,7 +160,6 @@ fn loop_player(
         }
     }
 }
-
 
 #[derive(Component)]
 struct PlayerJumpColliderMarker;
@@ -211,7 +243,7 @@ impl Default for TerrainBundle {
         Self {
             terrain_marker: TerrainMarker,
             rigid_body: RigidBody::Fixed,
-            collider: Collider::round_cuboid(7., 7., 1.),
+            collider: Collider::cuboid(8., 8.), // cuboid better because less points!!! (?)
         }
     }
 }
