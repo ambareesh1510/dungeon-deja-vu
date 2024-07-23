@@ -1,7 +1,9 @@
 use std::time::Duration;
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_rapier2d::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
+
+use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
 
 pub struct LevelManagementPlugin;
 
@@ -14,13 +16,13 @@ impl Plugin for LevelManagementPlugin {
                 .add_systems(Startup, spawn_level)
                 .add_systems(Update, add_collider)
                 .add_systems(Update, update_player_grounded)
-                .add_systems(Update, move_player);
+                .add_systems(Update, move_player)
+                .add_systems(Update, loop_player);
     }
 }
 
 fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>>) {
     if let Ok(entity) = query.get_single() {
-        println!("found player entity");
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Collider::round_cuboid(4., 2., 2.),
@@ -34,7 +36,6 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
 }
 
 fn update_player_grounded(
-    // mut collision_events: EventReader<CollisionEvent>,
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
     mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
     rapier_context: Res<RapierContext>,
@@ -103,11 +104,36 @@ fn move_player(
     }
 }
 
+fn loop_player(
+    mut query_player_camera: Query<&mut Transform, (With<PlayerCameraMarker>, Without<PlayerMarker>)>,
+    mut query_player: Query<&mut Transform, With<PlayerMarker>>,
+    query_level: Query<&LayerMetadata>,
+) {
+    if let Ok(mut player_transform) = query_player.get_single_mut() {
+        if let Ok(mut camera_transform) = query_player_camera.get_single_mut() {
+            for level in query_level.iter() {
+                if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+                    let width = level.c_wid as f32 * 16.;
+                    if player_transform.translation.x < 0. {
+                        player_transform.translation.x += width;
+                        camera_transform.translation.x += width;
+                    } else if player_transform.translation.x > width {
+                        player_transform.translation.x -= width;
+                        camera_transform.translation.x -= width;
+                    }
+                    // player_transform.translation.x = ((player_transform.translation.x % width) + width) % width;
+                }
+            }
+        }
+    }
+}
+
+
 #[derive(Component)]
 struct PlayerJumpColliderMarker;
 
 #[derive(Default, Component)]
-struct PlayerMarker;
+pub struct PlayerMarker;
 
 #[derive(Component)]
 struct PlayerStatus {
@@ -121,6 +147,7 @@ struct PlayerStatus {
 struct PlayerBundle {
     #[sprite_sheet_bundle]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
+    render_layer: RenderLayers,
     player_marker: PlayerMarker,
     player_status: PlayerStatus,
     rigid_body: RigidBody,
@@ -139,6 +166,7 @@ impl Default for PlayerBundle {
         jump_cooldown_timer.tick(Duration::from_millis(300));
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
+            render_layer: PLAYER_RENDER_LAYER,
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
                 grounded: true,
