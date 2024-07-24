@@ -25,7 +25,7 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
     if let Ok(entity) = query.get_single() {
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
-                Collider::round_cuboid(4., 2., 2.),
+                Collider::round_cuboid(3., 2., 2.),
                 Sensor,
                 ActiveEvents::COLLISION_EVENTS,
                 TransformBundle::from_transform(Transform::from_xyz(0., -4.2, 0.)),
@@ -53,7 +53,7 @@ fn update_player_grounded(
 
 fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
-        ldtk_handle: asset_server.load("level.ldtk"),
+        ldtk_handle: asset_server.load("level2.ldtk"),
         ..default()
     });
 }
@@ -113,15 +113,15 @@ fn move_player(
         }
         // player_velocity.linvel = Vec2::ZERO;
         if keys.pressed(KeyCode::ArrowRight) {
-            player_velocity.linvel += 35. * Vec2::X;
+            player_velocity.linvel += 65. * Vec2::X;
         }
         if keys.pressed(KeyCode::ArrowLeft) {
-            player_velocity.linvel -= 35. * Vec2::X;
+            player_velocity.linvel -= 65. * Vec2::X;
         }
         if keys.pressed(KeyCode::ArrowUp) && player_status.grounded {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
-                player_velocity.linvel = 100. * Vec2::Y;
+                player_velocity.linvel = 130. * Vec2::Y;
                 spring_force.force = Vec2::ZERO;
                 player_status.grounded = false;
                 player_status.jump_cooldown.reset();
@@ -134,7 +134,8 @@ fn move_player(
     }
 }
 
-fn loop_player(
+// TODO: split camera looping and player looping into separate systems
+pub fn loop_player(
     mut query_player_camera: Query<
         &mut Transform,
         (With<PlayerCameraMarker>, Without<PlayerMarker>),
@@ -150,6 +151,8 @@ fn loop_player(
                     if player_transform.translation.x < 0. {
                         player_transform.translation.x += width;
                         camera_transform.translation.x += width;
+                        // camera_transform.translation.x = player_transform.translation.x;
+                        println!("looped camera transform is {}", camera_transform.translation.x)
                     } else if player_transform.translation.x > width {
                         player_transform.translation.x -= width;
                         camera_transform.translation.x -= width;

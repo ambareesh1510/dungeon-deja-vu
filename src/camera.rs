@@ -1,4 +1,4 @@
-use crate::level::PlayerMarker;
+use crate::level::{loop_player, PlayerMarker};
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_ecs_ldtk::LayerMetadata;
 
@@ -9,7 +9,7 @@ impl Plugin for CameraManagementPlugin {
         app.add_systems(Update, setup_camera)
             // .add_systems(Update, control_camera)
             .add_systems(Update, attach_player_camera_to_player)
-            .add_systems(Update, autoscroll_camera)
+            .add_systems(Update, autoscroll_camera.after(loop_player))
             .add_systems(Update, loop_main_cameras);
     }
 }
@@ -127,10 +127,40 @@ fn loop_main_cameras(
 }
 
 fn autoscroll_camera(
-    mut query_cameras: Query<&mut Transform, With<CameraMarker>>,
+    mut query_main_cameras: Query<&mut Transform, With<MainCameraMarker>>,
+    mut query_player_camera: Query<&mut Transform, (With<CameraMarker>, Without<MainCameraMarker>)>,
+    query_player: Query<&mut Transform, (With<PlayerMarker>, Without<CameraMarker>, Without<MainCameraMarker>)>,
+    query_level: Query<&LayerMetadata>,
     time: Res<Time>,
 ) {
-    for mut camera_transform in query_cameras.iter_mut() {
-        camera_transform.translation.x += 0.4 * time.delta_seconds() * 60.;
+    if let Ok(player_transform) = query_player.get_single() {
+        let mut level_width = 1000. * 16.;
+        for level in query_level.iter() {
+            if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+                level_width = level.c_wid as f32 * 16.;
+            }
+        }
+        let max_delta = 100.;
+        println!("camera positions:");
+        // for mut camera_transform in query_cameras.iter_mut() {
+        if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
+            println!("{}", player_camera_transform.translation.x);
+            let new_transform = player_camera_transform.translation.x/*  % level_width */;
+            let new_player_transform = ((player_transform.translation.x % level_width) + level_width) % level_width;
+            let delta =  new_player_transform - new_transform;
+            if delta <= 0. {
+                println!("^ ignored");
+                return;
+            }
+            let modded_delta = ((delta % level_width) + level_width) % level_width;
+            // let modded_delta = delta;
+            println!("modded delta is {modded_delta}");
+            if modded_delta > max_delta {
+                player_camera_transform.translation.x += modded_delta - max_delta;
+                for mut camera_transform in query_main_cameras.iter_mut() {
+                    camera_transform.translation.x += modded_delta - max_delta;
+                }
+            }
+        }
     }
 }
