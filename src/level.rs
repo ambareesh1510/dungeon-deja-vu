@@ -54,6 +54,7 @@ fn update_player_grounded(
 fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
+        // level_set: LevelSet::from_iids(["410524d0-25d0-11ef-b3d7-db494d819bf6"]),
         ..default()
     });
 }
@@ -69,7 +70,6 @@ fn move_player(
         ),
         With<PlayerMarker>,
     >,
-    query_player_camera: Query<&Transform, (With<PlayerCameraMarker>, Without<PlayerMarker>)>,
     keys: Res<ButtonInput<KeyCode>>,
     rapier_context: Res<RapierContext>,
     time: Res<Time>,
@@ -78,7 +78,7 @@ fn move_player(
         player_entity,
         mut player_velocity,
         mut spring_force,
-        mut player_transform,
+        player_transform,
         mut player_status,
     )) = query_player.get_single_mut()
     {

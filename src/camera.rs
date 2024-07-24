@@ -1,15 +1,11 @@
-use crate::{
-    level::{loop_player, PlayerMarker},
-    main,
-};
+use crate::level::{loop_player, PlayerMarker};
 use bevy::{
     prelude::*,
     render::{camera::ScalingMode, view::RenderLayers},
-    window::PrimaryWindow,
 };
 use bevy_ecs_ldtk::LayerMetadata;
 
-const CAMERA_UNIT_HEIGHT: f32 = 200.;
+const CAMERA_UNIT_HEIGHT: f32 = 250.;
 
 pub struct CameraManagementPlugin;
 
