@@ -48,18 +48,19 @@ fn update_player_grounded(
                 .intersection_pairs_with(player_jump_controller_entity)
                 .peekable()
                 .peek()
-                != None { // if on the ground
-                    if matches!(*player_state, PlayerState::Falling) {
-                        *player_state = PlayerState::FallingToIdle;
-                    }
-                }  else {
-                    if velocity.linvel.y < 0. {
-                        if matches!(*player_state, PlayerState::Jumping) {
-                            *player_state = PlayerState::Falling;
-                        }
+                != None
+            {
+                // if on the ground
+                if *player_state == PlayerState::Falling {
+                    *player_state = PlayerState::FallingToIdle;
+                }
+            } else {
+                if velocity.linvel.y < 0. {
+                    if *player_state == PlayerState::Jumping {
+                        *player_state = PlayerState::Falling;
                     }
                 }
-            
+            }
         }
     }
 }
@@ -111,7 +112,8 @@ fn move_player(
         if rapier_context
             .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
             .is_some()
-            && !matches!(*player_state, PlayerState::Jumping) && !matches!(*player_state, PlayerState::Falling)
+            && *player_state != PlayerState::Jumping
+            && *player_state != PlayerState::Falling
         {
             let (_, toi) = rapier_context
                 .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
@@ -133,7 +135,7 @@ fn move_player(
         let mut moved = false;
         if keys.pressed(KeyCode::ArrowRight) {
             player_velocity.linvel += 65. * Vec2::X;
-            if matches!(*player_state, PlayerState::MovingLeft) || matches!(*player_state, PlayerState::Idle) {
+            if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingRight;
             }
             sprite.flip_x = false;
@@ -141,20 +143,22 @@ fn move_player(
         }
         if keys.pressed(KeyCode::ArrowLeft) {
             player_velocity.linvel -= 65. * Vec2::X;
-            if matches!(*player_state, PlayerState::MovingRight) || matches!(*player_state, PlayerState::Idle) {
+            if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingLeft;
             }
             sprite.flip_x = true;
             moved = true
         }
         if !moved {
-            
-            if matches!(*player_state, PlayerState::MovingLeft) || matches!(*player_state, PlayerState::MovingRight) {
+            if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::MovingRight
+            {
                 *player_state = PlayerState::MovingToIdle;
             }
-            
         }
-        if keys.pressed(KeyCode::ArrowUp) && !matches!(*player_state, PlayerState::Jumping) && !matches!(*player_state, PlayerState::Falling) {
+        if keys.pressed(KeyCode::ArrowUp)
+            && *player_state != PlayerState::Jumping
+            && *player_state != PlayerState::Falling
+        {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
                 player_velocity.linvel = 130. * Vec2::Y;
@@ -173,20 +177,25 @@ fn move_player(
 fn animate_player(
     time: Res<Time>,
     animation_info: Res<AnimationInfo>,
-    mut query: Query<(&mut TextureAtlas, &mut PlayerState, &mut AnimationTimer), With<PlayerMarker>>,
+    mut query: Query<
+        (&mut TextureAtlas, &mut PlayerState, &mut AnimationTimer),
+        With<PlayerMarker>,
+    >,
 ) {
     if let Ok((mut atlas, mut state, mut timer)) = query.get_single_mut() {
         timer.tick(time.delta());
         println!("state: {:?}", *state);
         if timer.finished() {
             match *state {
-                PlayerState::Idle => { // no idle animation as of now
+                PlayerState::Idle => {
+                    // no idle animation as of now
 
                     atlas.index = 0;
                 }
                 PlayerState::MovingLeft => {
-                    
-                    if atlas.index < animation_info.moving_start || atlas.index > animation_info.moving_end {
+                    if atlas.index < animation_info.moving_start
+                        || atlas.index > animation_info.moving_end
+                    {
                         atlas.index = animation_info.moving_start;
                     } else {
                         atlas.index = if atlas.index == animation_info.moving_end {
@@ -195,28 +204,32 @@ fn animate_player(
                             atlas.index + 1
                         };
                     }
-                    
-                    timer.set_duration(Duration::from_millis(animation_info.moving_durations[atlas.index - animation_info.moving_start]));
-                   
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.moving_durations[atlas.index - animation_info.moving_start],
+                    ));
                 }
                 PlayerState::MovingRight => {
-                    
-                    if atlas.index < animation_info.moving_start || atlas.index > animation_info.moving_end  {
+                    if atlas.index < animation_info.moving_start
+                        || atlas.index > animation_info.moving_end
+                    {
                         atlas.index = animation_info.moving_start;
-                    } else { 
+                    } else {
                         atlas.index = if atlas.index == animation_info.moving_end {
                             animation_info.moving_start + 2
                         } else {
                             atlas.index + 1
                         };
                     }
-                    
-                    
-                    timer.set_duration(Duration::from_millis(animation_info.moving_durations[atlas.index - animation_info.moving_start]));
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.moving_durations[atlas.index - animation_info.moving_start],
+                    ));
                 }
                 PlayerState::Jumping => {
-                    
-                    if atlas.index < animation_info.jumping_start || atlas.index > animation_info.jumping_end {
+                    if atlas.index < animation_info.jumping_start
+                        || atlas.index > animation_info.jumping_end
+                    {
                         atlas.index = animation_info.jumping_start;
                     } else {
                         atlas.index = if atlas.index == animation_info.jumping_end {
@@ -225,50 +238,58 @@ fn animate_player(
                             atlas.index + 1
                         };
                     }
-                    
-                    timer.set_duration(Duration::from_millis(animation_info.jumping_durations[atlas.index - animation_info.jumping_start]));
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.jumping_durations
+                            [atlas.index - animation_info.jumping_start],
+                    ));
                 }
                 PlayerState::Falling => {
-                    if atlas.index < animation_info.falling_start || atlas.index > animation_info.falling_end {
+                    if atlas.index < animation_info.falling_start
+                        || atlas.index > animation_info.falling_end
+                    {
                         atlas.index = animation_info.falling_start;
-                    }else {
+                    } else {
                         atlas.index = if atlas.index == animation_info.falling_end {
                             atlas.index
                         } else {
                             atlas.index + 1
                         };
                     }
-                    
-                    
-                    timer.set_duration(Duration::from_millis(animation_info.falling_durations[atlas.index - animation_info.falling_start]));
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.falling_durations
+                            [atlas.index - animation_info.falling_start],
+                    ));
                 }
                 PlayerState::MovingToIdle => {
                     atlas.index = animation_info.moving_start + 1;
                     timer.set_duration(Duration::from_millis(50));
-                    
+
                     *state = PlayerState::Idle;
                 }
                 PlayerState::FallingToIdle => {
-                    
-                    if atlas.index < animation_info.falling_to_idle_start || atlas.index > animation_info.falling_to_idle_end {
+                    if atlas.index < animation_info.falling_to_idle_start
+                        || atlas.index > animation_info.falling_to_idle_end
+                    {
                         atlas.index = animation_info.falling_to_idle_start;
                     }
                     println!("atlas index: {}", atlas.index);
                     atlas.index = if atlas.index == animation_info.falling_to_idle_end {
-                        
                         *state = PlayerState::Idle;
                         atlas.index
                     } else {
                         atlas.index + 1
                     };
-                    
-                    timer.set_duration(Duration::from_millis(animation_info.falling_to_idle_durations[atlas.index - animation_info.falling_to_idle_start]));
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.falling_to_idle_durations
+                            [atlas.index - animation_info.falling_to_idle_start],
+                    ));
                 }
             }
         }
     }
-        
-         
 }
 
 // TODO: split camera looping and player looping into separate systems
@@ -289,7 +310,10 @@ pub fn loop_player(
                         player_transform.translation.x += width;
                         camera_transform.translation.x += width;
                         // camera_transform.translation.x = player_transform.translation.x;
-                        println!("looped camera transform is {}", camera_transform.translation.x)
+                        println!(
+                            "looped camera transform is {}",
+                            camera_transform.translation.x
+                        )
                     } else if player_transform.translation.x > width {
                         player_transform.translation.x -= width;
                         camera_transform.translation.x -= width;
@@ -309,7 +333,6 @@ pub struct PlayerMarker;
 
 #[derive(Resource)]
 struct AnimationInfo {
-
     moving_start: usize,
     moving_end: usize,
     jumping_start: usize,
@@ -323,14 +346,10 @@ struct AnimationInfo {
     jumping_durations: Vec<u64>,
     falling_durations: Vec<u64>,
     falling_to_idle_durations: Vec<u64>,
-
-
-    
 }
 impl Default for AnimationInfo {
     fn default() -> Self {
         Self {
-
             moving_start: 10,
             moving_end: 13,
             jumping_start: 0,
@@ -340,7 +359,7 @@ impl Default for AnimationInfo {
             falling_to_idle_start: 6,
             falling_to_idle_end: 10,
 
-            moving_durations: vec![100,100,100,100],
+            moving_durations: vec![100, 100, 100, 100],
             jumping_durations: vec![100, 100, 100],
             falling_durations: vec![100, 100, 100],
             falling_to_idle_durations: vec![50, 50, 50, 50, 50],
@@ -349,13 +368,12 @@ impl Default for AnimationInfo {
 }
 #[derive(Component)]
 struct PlayerStatus {
-
     jump_cooldown: Timer,
     air_jumps: usize,
     max_air_jumps: usize,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, PartialEq, Eq)]
 enum PlayerState {
     Idle,
     MovingLeft,
@@ -386,7 +404,6 @@ struct PlayerBundle {
     locked_axes: LockedAxes,
     player_state: PlayerState,
     animation_timer: AnimationTimer,
-
 }
 
 impl Default for PlayerBundle {
@@ -398,7 +415,6 @@ impl Default for PlayerBundle {
             render_layer: PLAYER_RENDER_LAYER,
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
-
                 jump_cooldown: jump_cooldown_timer,
                 air_jumps: 1,
                 max_air_jumps: 1,
@@ -422,7 +438,10 @@ impl Default for PlayerBundle {
             },
             locked_axes: LockedAxes::ROTATION_LOCKED,
             player_state: PlayerState::Idle,
-            animation_timer: AnimationTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(100),
+                TimerMode::Repeating,
+            )),
         }
     }
 }

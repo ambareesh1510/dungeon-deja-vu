@@ -129,7 +129,14 @@ fn loop_main_cameras(
 fn autoscroll_camera(
     mut query_main_cameras: Query<&mut Transform, With<MainCameraMarker>>,
     mut query_player_camera: Query<&mut Transform, (With<CameraMarker>, Without<MainCameraMarker>)>,
-    query_player: Query<&mut Transform, (With<PlayerMarker>, Without<CameraMarker>, Without<MainCameraMarker>)>,
+    query_player: Query<
+        &mut Transform,
+        (
+            With<PlayerMarker>,
+            Without<CameraMarker>,
+            Without<MainCameraMarker>,
+        ),
+    >,
     query_level: Query<&LayerMetadata>,
     time: Res<Time>,
 ) {
@@ -146,8 +153,9 @@ fn autoscroll_camera(
         if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
             // println!("{}", player_camera_transform.translation.x);
             let new_transform = player_camera_transform.translation.x/*  % level_width */;
-            let new_player_transform = ((player_transform.translation.x % level_width) + level_width) % level_width;
-            let delta =  new_player_transform - new_transform;
+            let new_player_transform =
+                ((player_transform.translation.x % level_width) + level_width) % level_width;
+            let delta = new_player_transform - new_transform;
             if delta <= 0. {
                 // println!("^ ignored");
                 return;
