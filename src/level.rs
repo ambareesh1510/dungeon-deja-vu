@@ -14,11 +14,13 @@ impl Plugin for LevelManagementPlugin {
             .insert_resource(AnimationInfo::default())
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
-            .add_systems(Startup, spawn_level)
+            .add_systems(Startup, spawn_level.before(spawn_backwards_barrier))
+            .add_systems(Startup, spawn_backwards_barrier.after(spawn_level))
             .add_systems(Update, add_collider)
             .add_systems(Update, update_player_grounded)
             .add_systems(Update, move_player)
             .add_systems(Update, loop_player)
+            .add_systems(Update, update_backwards_barrier)
             .add_systems(Update, animate_player);
     }
 }
@@ -464,5 +466,62 @@ impl Default for TerrainBundle {
             rigid_body: RigidBody::Fixed,
             collider: Collider::cuboid(8., 8.), // cuboid better because less points!!! (?)
         }
+    }
+}
+
+#[derive(Component)]
+struct BackwardsBarrier;
+
+fn spawn_backwards_barrier(mut commands: Commands) {
+    commands
+        .spawn((Collider::cuboid(1., 1000.), BackwardsBarrier))
+        .insert(TransformBundle::from_transform(Transform::from_xyz(
+            0., 0., 0.,
+        )));
+}
+
+fn update_backwards_barrier(
+    query_level: Query<&LayerMetadata, With<LayerMetadata>>,
+    query_camera: Query<
+        (&Camera, &Transform, &GlobalTransform),
+        (With<PlayerCameraMarker>, Without<BackwardsBarrier>),
+    >,
+    mut query_barrier: Query<&mut Transform, With<BackwardsBarrier>>,
+) {
+    let Ok(mut barrier) = query_barrier.get_single_mut() else {
+        return;
+    };
+    let Ok((camera, camera_transform, camera_global_transform)) = query_camera.get_single() else {
+        return;
+    };
+
+    let mut level_width = 0.;
+    for level in query_level.iter() {
+        if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+            level_width = level.c_wid as f32 * 16.;
+        }
+    }
+
+    let w_end = camera
+        .viewport_to_world_2d(
+            camera_global_transform,
+            camera.logical_viewport_size().unwrap(),
+        )
+        .unwrap()
+        .x;
+    let w_start = camera
+        .viewport_to_world_2d(camera_global_transform, Vec2::new(0., 0.))
+        .unwrap()
+        .x;
+    let width = w_end - w_start;
+
+    let barrier_offset = 5.;
+    let barrier_jitter_correction = 10.;
+    barrier.translation.x = camera_transform.translation.x - width / 2. - barrier_offset;
+    if barrier.translation.x < 0. {
+        barrier.translation.x += level_width;
+    }
+    if barrier.translation.x > level_width - barrier_offset - barrier_jitter_correction {
+        barrier.translation.x = level_width - barrier_offset - barrier_jitter_correction
     }
 }
