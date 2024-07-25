@@ -18,8 +18,8 @@ impl Plugin for LevelManagementPlugin {
             .add_systems(Update, add_collider)
             .add_systems(Update, update_player_grounded)
             .add_systems(Update, move_player)
-            .add_systems(Update, loop_player.before(move_player))
-            .add_systems(Update, animate_player.after(spawn_level));
+            .add_systems(Update, loop_player)
+            .add_systems(Update, animate_player);
     }
 }
 
@@ -289,7 +289,7 @@ pub fn loop_player(
                         player_transform.translation.x += width;
                         camera_transform.translation.x += width;
                         // camera_transform.translation.x = player_transform.translation.x;
-                        // println!("looped camera transform is {}", camera_transform.translation.x)
+                        println!("looped camera transform is {}", camera_transform.translation.x)
                     } else if player_transform.translation.x > width {
                         player_transform.translation.x -= width;
                         camera_transform.translation.x -= width;
