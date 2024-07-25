@@ -1,6 +1,11 @@
 use crate::level::{loop_player, PlayerMarker};
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{
+    prelude::*,
+    render::{camera::ScalingMode, view::RenderLayers},
+};
 use bevy_ecs_ldtk::LayerMetadata;
+
+const CAMERA_UNIT_HEIGHT: f32 = 250.;
 
 pub struct CameraManagementPlugin;
 
@@ -27,11 +32,12 @@ pub struct PlayerCameraMarker;
 struct MainCameraMarker;
 
 fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
+    let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
     for level in query_level.iter() {
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
             let level_width = level.c_wid as f32 * 16.;
             let mut player_camera = Camera2dBundle::default();
-            player_camera.projection.scale = 0.5;
+            player_camera.projection.scaling_mode = scaling_mode;
             player_camera.camera.order = PLAYER_CAMERA_ORDER;
             commands.spawn((
                 player_camera,
@@ -41,11 +47,11 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
             ));
 
             let mut main_camera = Camera2dBundle::default();
-            main_camera.projection.scale = 0.5;
+            main_camera.projection.scaling_mode = scaling_mode;
             commands.spawn((main_camera, MainCameraMarker, CameraMarker));
 
             let mut main_camera_2 = Camera2dBundle::default();
-            main_camera_2.projection.scale = 0.5;
+            main_camera_2.projection.scaling_mode = scaling_mode;
             main_camera_2.transform.translation.x = level_width;
             main_camera_2.camera.order = -1;
             commands.spawn((main_camera_2, MainCameraMarker, CameraMarker));
@@ -97,14 +103,23 @@ fn attach_player_camera_to_player(
     >,
     query_player: Query<&Transform, With<PlayerMarker>>,
 ) {
+    // the lowest possible position of the camera such that the part outside of the level is not
+    // shown
+    let low_pos = CAMERA_UNIT_HEIGHT / 2.;
     if let (Ok(mut player_camera_transform), Ok(player_transform)) = (
         query_player_camera.get_single_mut(),
         query_player.get_single(),
     ) {
         let delta = (player_transform.translation.y - 10.0) - player_camera_transform.translation.y;
         player_camera_transform.translation.y += delta / 3.;
+        if player_camera_transform.translation.y < low_pos {
+            player_camera_transform.translation.y = low_pos;
+        }
         for mut main_camera_transform in query_main_camera.iter_mut() {
             main_camera_transform.translation.y += delta / 3.;
+            if main_camera_transform.translation.y < low_pos {
+                main_camera_transform.translation.y = low_pos;
+            }
         }
     }
 }
@@ -147,7 +162,7 @@ fn autoscroll_camera(
                 level_width = level.c_wid as f32 * 16.;
             }
         }
-        let max_delta = 100.;
+
         // println!("camera positions:");
         // for mut camera_transform in query_cameras.iter_mut() {
         if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
@@ -160,14 +175,15 @@ fn autoscroll_camera(
                 // println!("^ ignored");
                 return;
             }
+            // NOTE: if the delta is greater than 0, that means the player's world transform is
+            // greater than the camera's, which is in the center of the screen. So the camera will
+            // only scroll if the player is past the halfway point
             let modded_delta = ((delta % level_width) + level_width) % level_width;
-            // let modded_delta = delta;
+
             // println!("modded delta is {modded_delta}");
-            if modded_delta > max_delta {
-                player_camera_transform.translation.x += modded_delta - max_delta;
-                for mut camera_transform in query_main_cameras.iter_mut() {
-                    camera_transform.translation.x += modded_delta - max_delta;
-                }
+            player_camera_transform.translation.x += modded_delta;
+            for mut camera_transform in query_main_cameras.iter_mut() {
+                camera_transform.translation.x += modded_delta;
             }
         }
     }

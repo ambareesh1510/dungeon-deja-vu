@@ -67,7 +67,8 @@ fn update_player_grounded(
 
 fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
-        ldtk_handle: asset_server.load("level2.ldtk"),
+        ldtk_handle: asset_server.load("level.ldtk"),
+        // level_set: LevelSet::from_iids(["410524d0-25d0-11ef-b3d7-db494d819bf6"]),
         ..default()
     });
 }
@@ -93,7 +94,7 @@ fn move_player(
         player_entity,
         mut player_velocity,
         mut spring_force,
-        transform,
+        player_transform,
         mut sprite,
         mut player_status,
         mut player_state,
@@ -102,7 +103,7 @@ fn move_player(
         // spring force added here so that the screen does not shake when the character walks over
         // grid boundaries
         const SPRING_CONSTANT: f32 = 15000.0;
-        let ray_pos = transform.translation.xy();
+        let ray_pos = player_transform.translation.xy();
         let ray_dir = -1. * Vec2::Y;
         let max_toi = 10.;
         let solid = true;
