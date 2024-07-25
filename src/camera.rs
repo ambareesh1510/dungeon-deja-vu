@@ -162,6 +162,7 @@ fn autoscroll_camera(
                 level_width = level.c_wid as f32 * 16.;
             }
         }
+
         // println!("camera positions:");
         // for mut camera_transform in query_cameras.iter_mut() {
         if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
@@ -178,6 +179,7 @@ fn autoscroll_camera(
             // greater than the camera's, which is in the center of the screen. So the camera will
             // only scroll if the player is past the halfway point
             let modded_delta = ((delta % level_width) + level_width) % level_width;
+
             // println!("modded delta is {modded_delta}");
             player_camera_transform.translation.x += modded_delta;
             for mut camera_transform in query_main_cameras.iter_mut() {
