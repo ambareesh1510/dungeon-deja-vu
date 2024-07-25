@@ -53,7 +53,7 @@ fn update_player_grounded(
     }
 }
 
-pub fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
         // level_set: LevelSet::from_iids(["410524d0-25d0-11ef-b3d7-db494d819bf6"]),
@@ -261,42 +261,50 @@ impl Default for TerrainBundle {
 struct BackwardsBarrier;
 
 fn spawn_backwards_barrier(mut commands: Commands) {
-    commands.spawn((Collider::cuboid(10., 1000.), BackwardsBarrier));
-    println!("Spawned bwb");
+    commands
+        .spawn((Collider::cuboid(1., 1000.), BackwardsBarrier))
+        .insert(TransformBundle::from_transform(Transform::from_xyz(
+            0., 0., 0.,
+        )));
 }
 
 fn update_backwards_barrier(
     query_level: Query<&LayerMetadata, With<LayerMetadata>>,
-    query_camera: Query<&Camera, With<PlayerCameraMarker>>,
-    query_camera_transform: Query<
-        &Transform,
+    query_camera: Query<
+        (&Camera, &Transform, &GlobalTransform),
         (With<PlayerCameraMarker>, Without<BackwardsBarrier>),
     >,
     mut query_barrier: Query<&mut Transform, With<BackwardsBarrier>>,
 ) {
     let Ok(mut barrier) = query_barrier.get_single_mut() else {
-        // println!("barrier is none");
         return;
     };
-    let Ok(camera) = query_camera.get_single() else {
-        println!("camera is none");
-        return;
-    };
-    let Ok(camera_transform) = query_camera_transform.get_single() else {
-        println!("camera transform is none");
+    let Ok((camera, camera_transform, camera_global_transform)) = query_camera.get_single() else {
         return;
     };
 
-    let mut level_height = 0.;
+    let mut level_width = 0.;
     for level in query_level.iter() {
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
-            level_height = level.c_hei as f32 * 16.;
+            level_width = level.c_wid as f32 * 16.;
         }
     }
 
-    let width = camera.logical_target_size().unwrap().x;
+    let w_end = camera
+        .viewport_to_world_2d(
+            camera_global_transform,
+            camera.logical_viewport_size().unwrap(),
+        )
+        .unwrap()
+        .x;
+    let w_start = camera
+        .viewport_to_world_2d(camera_global_transform, Vec2::new(0., 0.))
+        .unwrap()
+        .x;
+    let width = w_end - w_start;
+
     barrier.translation.x = camera_transform.translation.x - width / 2.;
     if barrier.translation.x < 0. {
-        barrier.translation.x += level_height;
+        barrier.translation.x += level_width;
     }
 }

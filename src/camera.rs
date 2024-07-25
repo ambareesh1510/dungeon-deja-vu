@@ -1,11 +1,9 @@
-use crate::level::{loop_player, spawn_level, PlayerMarker};
+use crate::level::{loop_player, PlayerMarker};
 use bevy::{
-    pbr::deferred::insert_deferred_lighting_pass_id_component,
     prelude::*,
     render::{camera::ScalingMode, view::RenderLayers},
 };
 use bevy_ecs_ldtk::LayerMetadata;
-use bevy_rapier2d::geometry::Collider;
 
 const CAMERA_UNIT_HEIGHT: f32 = 250.;
 
