@@ -56,9 +56,9 @@ fn update_player_grounded(
                 }
             } else {
                 if velocity.linvel.y < 0. {
-                    if *player_state == PlayerState::Jumping {
-                        *player_state = PlayerState::Falling;
-                    }
+                    
+                    *player_state = PlayerState::Falling;
+                    
                 }
             }
         }
