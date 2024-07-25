@@ -13,11 +13,13 @@ impl Plugin for LevelManagementPlugin {
             .insert_resource(LevelSelection::index(0))
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
-            .add_systems(Startup, spawn_level)
+            .add_systems(Startup, spawn_level.before(spawn_backwards_barrier))
+            .add_systems(Startup, spawn_backwards_barrier.after(spawn_level))
             .add_systems(Update, add_collider)
             .add_systems(Update, update_player_grounded)
             .add_systems(Update, move_player)
-            .add_systems(Update, loop_player);
+            .add_systems(Update, loop_player)
+            .add_systems(Update, update_backwards_barrier);
     }
 }
 
@@ -51,7 +53,7 @@ fn update_player_grounded(
     }
 }
 
-fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
         // level_set: LevelSet::from_iids(["410524d0-25d0-11ef-b3d7-db494d819bf6"]),
@@ -252,5 +254,49 @@ impl Default for TerrainBundle {
             rigid_body: RigidBody::Fixed,
             collider: Collider::cuboid(8., 8.), // cuboid better because less points!!! (?)
         }
+    }
+}
+
+#[derive(Component)]
+struct BackwardsBarrier;
+
+fn spawn_backwards_barrier(mut commands: Commands) {
+    commands.spawn((Collider::cuboid(10., 1000.), BackwardsBarrier));
+    println!("Spawned bwb");
+}
+
+fn update_backwards_barrier(
+    query_level: Query<&LayerMetadata, With<LayerMetadata>>,
+    query_camera: Query<&Camera, With<PlayerCameraMarker>>,
+    query_camera_transform: Query<
+        &Transform,
+        (With<PlayerCameraMarker>, Without<BackwardsBarrier>),
+    >,
+    mut query_barrier: Query<&mut Transform, With<BackwardsBarrier>>,
+) {
+    let Ok(mut barrier) = query_barrier.get_single_mut() else {
+        // println!("barrier is none");
+        return;
+    };
+    let Ok(camera) = query_camera.get_single() else {
+        println!("camera is none");
+        return;
+    };
+    let Ok(camera_transform) = query_camera_transform.get_single() else {
+        println!("camera transform is none");
+        return;
+    };
+
+    let mut level_height = 0.;
+    for level in query_level.iter() {
+        if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+            level_height = level.c_hei as f32 * 16.;
+        }
+    }
+
+    let width = camera.logical_target_size().unwrap().x;
+    barrier.translation.x = camera_transform.translation.x - width / 2.;
+    if barrier.translation.x < 0. {
+        barrier.translation.x += level_height;
     }
 }
