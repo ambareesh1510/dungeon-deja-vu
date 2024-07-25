@@ -135,9 +135,10 @@ fn move_player(
             // *player_state = PlayerState::Jumping;
         }
         // player_velocity.linvel = Vec2::ZERO;
+        const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
         if keys.pressed(KeyCode::ArrowRight) {
-            player_velocity.linvel += 65. * Vec2::X;
+            player_velocity.linvel += VELOCITY;
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingRight;
             }
@@ -145,7 +146,7 @@ fn move_player(
             moved = true;
         }
         if keys.pressed(KeyCode::ArrowLeft) {
-            player_velocity.linvel -= 65. * Vec2::X;
+            player_velocity.linvel -= VELOCITY;
             if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingLeft;
             }
