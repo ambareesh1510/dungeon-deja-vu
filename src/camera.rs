@@ -141,20 +141,20 @@ fn autoscroll_camera(
             }
         }
         let max_delta = 100.;
-        println!("camera positions:");
+        // println!("camera positions:");
         // for mut camera_transform in query_cameras.iter_mut() {
         if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
-            println!("{}", player_camera_transform.translation.x);
+            // println!("{}", player_camera_transform.translation.x);
             let new_transform = player_camera_transform.translation.x/*  % level_width */;
             let new_player_transform = ((player_transform.translation.x % level_width) + level_width) % level_width;
             let delta =  new_player_transform - new_transform;
             if delta <= 0. {
-                println!("^ ignored");
+                // println!("^ ignored");
                 return;
             }
             let modded_delta = ((delta % level_width) + level_width) % level_width;
             // let modded_delta = delta;
-            println!("modded delta is {modded_delta}");
+            // println!("modded delta is {modded_delta}");
             if modded_delta > max_delta {
                 player_camera_transform.translation.x += modded_delta - max_delta;
                 for mut camera_transform in query_main_cameras.iter_mut() {
