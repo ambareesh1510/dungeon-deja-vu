@@ -303,8 +303,13 @@ fn update_backwards_barrier(
         .x;
     let width = w_end - w_start;
 
-    barrier.translation.x = camera_transform.translation.x - width / 2.;
+    let barrier_offset = 5.;
+    let barrier_jitter_correction = 10.;
+    barrier.translation.x = camera_transform.translation.x - width / 2. - barrier_offset;
     if barrier.translation.x < 0. {
         barrier.translation.x += level_width;
+    }
+    if barrier.translation.x > level_width - barrier_offset - barrier_jitter_correction {
+        barrier.translation.x = level_width - barrier_offset - barrier_jitter_correction
     }
 }
