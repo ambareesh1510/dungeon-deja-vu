@@ -11,6 +11,7 @@ impl Plugin for LevelManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LdtkPlugin)
             .insert_resource(LevelSelection::index(0))
+            .insert_resource(AnimationInfo::default())
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .add_systems(Startup, spawn_level.before(spawn_backwards_barrier))
@@ -20,6 +21,7 @@ impl Plugin for LevelManagementPlugin {
             .add_systems(Update, move_player)
             .add_systems(Update, loop_player)
             .add_systems(Update, update_backwards_barrier);
+            .add_systems(Update, animate_player);
     }
 }
 
@@ -39,16 +41,28 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
 
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
-    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerState, &Velocity), With<PlayerMarker>>,
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
-        if let Ok(mut player_status) = query_player.get_single_mut() {
-            player_status.grounded = rapier_context
+        if let Ok((mut player_state, velocity)) = query_player.get_single_mut() {
+            if rapier_context
                 .intersection_pairs_with(player_jump_controller_entity)
                 .peekable()
                 .peek()
-                != None;
+                != None
+            {
+                // if on the ground
+                if *player_state == PlayerState::Falling {
+                    *player_state = PlayerState::FallingToIdle;
+                }
+            } else {
+                if velocity.linvel.y < 0. {
+                    
+                    *player_state = PlayerState::Falling;
+                    
+                }
+            }
         }
     }
 }
@@ -68,7 +82,9 @@ fn move_player(
             &mut Velocity,
             &mut ExternalForce,
             &Transform,
+            &mut Sprite,
             &mut PlayerStatus,
+            &mut PlayerState,
         ),
         With<PlayerMarker>,
     >,
@@ -81,7 +97,9 @@ fn move_player(
         mut player_velocity,
         mut spring_force,
         player_transform,
+        mut sprite,
         mut player_status,
+        mut player_state,
     )) = query_player.get_single_mut()
     {
         // spring force added here so that the screen does not shake when the character walks over
@@ -97,7 +115,8 @@ fn move_player(
         if rapier_context
             .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
             .is_some()
-            && player_status.grounded
+            && *player_state != PlayerState::Jumping
+            && *player_state != PlayerState::Falling
         {
             let (_, toi) = rapier_context
                 .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
@@ -112,27 +131,166 @@ fn move_player(
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
             spring_force.force = Vec2::ZERO;
-            player_status.grounded = false;
+            // player_status.grounded = false;
+            // *player_state = PlayerState::Jumping;
         }
         // player_velocity.linvel = Vec2::ZERO;
+        let mut moved = false;
         if keys.pressed(KeyCode::ArrowRight) {
             player_velocity.linvel += 65. * Vec2::X;
+            if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
+                *player_state = PlayerState::MovingRight;
+            }
+            sprite.flip_x = false;
+            moved = true;
         }
         if keys.pressed(KeyCode::ArrowLeft) {
             player_velocity.linvel -= 65. * Vec2::X;
+            if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
+                *player_state = PlayerState::MovingLeft;
+            }
+            sprite.flip_x = true;
+            moved = true
         }
-        if keys.pressed(KeyCode::ArrowUp) && player_status.grounded {
+        if !moved {
+            if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::MovingRight
+            {
+                *player_state = PlayerState::MovingToIdle;
+            }
+        }
+        if keys.pressed(KeyCode::ArrowUp)
+            && *player_state != PlayerState::Jumping
+            && *player_state != PlayerState::Falling
+        {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
                 player_velocity.linvel = 130. * Vec2::Y;
                 spring_force.force = Vec2::ZERO;
-                player_status.grounded = false;
+                *player_state = PlayerState::Jumping;
                 player_status.jump_cooldown.reset();
             }
         }
         player_velocity.linvel.x /= 1.6;
         if player_velocity.linvel.x.abs() < 0.1 {
             player_velocity.linvel.x = 0.;
+        }
+    }
+}
+
+fn animate_player(
+    time: Res<Time>,
+    animation_info: Res<AnimationInfo>,
+    mut query: Query<
+        (&mut TextureAtlas, &mut PlayerState, &mut AnimationTimer),
+        With<PlayerMarker>,
+    >,
+) {
+    if let Ok((mut atlas, mut state, mut timer)) = query.get_single_mut() {
+        timer.tick(time.delta());
+        println!("state: {:?}", *state);
+        if timer.finished() {
+            match *state {
+                PlayerState::Idle => {
+                    // no idle animation as of now
+
+                    atlas.index = 0;
+                }
+                PlayerState::MovingLeft => {
+                    if atlas.index < animation_info.moving_start
+                        || atlas.index > animation_info.moving_end
+                    {
+                        atlas.index = animation_info.moving_start;
+                    } else {
+                        atlas.index = if atlas.index == animation_info.moving_end {
+                            animation_info.moving_start + 2
+                        } else {
+                            atlas.index + 1
+                        };
+                    }
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.moving_durations[atlas.index - animation_info.moving_start],
+                    ));
+                }
+                PlayerState::MovingRight => {
+                    if atlas.index < animation_info.moving_start
+                        || atlas.index > animation_info.moving_end
+                    {
+                        atlas.index = animation_info.moving_start;
+                    } else {
+                        atlas.index = if atlas.index == animation_info.moving_end {
+                            animation_info.moving_start + 2
+                        } else {
+                            atlas.index + 1
+                        };
+                    }
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.moving_durations[atlas.index - animation_info.moving_start],
+                    ));
+                }
+                PlayerState::Jumping => {
+                    if atlas.index < animation_info.jumping_start
+                        || atlas.index > animation_info.jumping_end
+                    {
+                        atlas.index = animation_info.jumping_start;
+                    } else {
+                        atlas.index = if atlas.index == animation_info.jumping_end {
+                            atlas.index
+                        } else {
+                            atlas.index + 1
+                        };
+                    }
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.jumping_durations
+                            [atlas.index - animation_info.jumping_start],
+                    ));
+                }
+                PlayerState::Falling => {
+                    if atlas.index < animation_info.falling_start
+                        || atlas.index > animation_info.falling_end
+                    {
+                        atlas.index = animation_info.falling_start;
+                    } else {
+                        atlas.index = if atlas.index == animation_info.falling_end {
+                            atlas.index
+                        } else {
+                            atlas.index + 1
+                        };
+                    }
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.falling_durations
+                            [atlas.index - animation_info.falling_start],
+                    ));
+                }
+                PlayerState::MovingToIdle => {
+                    atlas.index = animation_info.moving_start + 1;
+                    timer.set_duration(Duration::from_millis(50));
+
+                    *state = PlayerState::Idle;
+                }
+                PlayerState::FallingToIdle => {
+                    if atlas.index < animation_info.falling_to_idle_start
+                        || atlas.index > animation_info.falling_to_idle_end
+                    {
+                        atlas.index = animation_info.falling_to_idle_start;
+                    }
+                    println!("atlas index: {}", atlas.index);
+                    atlas.index = if atlas.index == animation_info.falling_to_idle_end {
+                        *state = PlayerState::Idle;
+                        atlas.index
+                    } else {
+                        atlas.index + 1
+                    };
+
+                    timer.set_duration(Duration::from_millis(
+                        animation_info.falling_to_idle_durations
+                            [atlas.index - animation_info.falling_to_idle_start],
+                    ));
+                }
+            }
         }
     }
 }
@@ -176,17 +334,65 @@ struct PlayerJumpColliderMarker;
 #[derive(Default, Component)]
 pub struct PlayerMarker;
 
+#[derive(Resource)]
+struct AnimationInfo {
+    moving_start: usize,
+    moving_end: usize,
+    jumping_start: usize,
+    jumping_end: usize,
+    falling_start: usize,
+    falling_end: usize,
+    falling_to_idle_start: usize,
+    falling_to_idle_end: usize,
+
+    moving_durations: Vec<u64>,
+    jumping_durations: Vec<u64>,
+    falling_durations: Vec<u64>,
+    falling_to_idle_durations: Vec<u64>,
+}
+impl Default for AnimationInfo {
+    fn default() -> Self {
+        Self {
+            moving_start: 10,
+            moving_end: 13,
+            jumping_start: 0,
+            jumping_end: 2,
+            falling_start: 2,
+            falling_end: 4,
+            falling_to_idle_start: 6,
+            falling_to_idle_end: 10,
+
+            moving_durations: vec![100, 100, 100, 100],
+            jumping_durations: vec![100, 100, 100],
+            falling_durations: vec![100, 100, 100],
+            falling_to_idle_durations: vec![50, 50, 50, 50, 50],
+        }
+    }
+}
 #[derive(Component)]
 struct PlayerStatus {
-    grounded: bool,
     jump_cooldown: Timer,
     air_jumps: usize,
     max_air_jumps: usize,
 }
 
+#[derive(Component, Debug, PartialEq, Eq)]
+enum PlayerState {
+    Idle,
+    MovingLeft,
+    MovingRight,
+    Jumping,
+    Falling,
+    MovingToIdle,
+    FallingToIdle,
+}
+
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/slimespritesheet.png", 16, 16, 11, 2, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     render_layer: RenderLayers,
     player_marker: PlayerMarker,
@@ -199,6 +405,8 @@ struct PlayerBundle {
     restitution: Restitution,
     spring_force: ExternalForce,
     locked_axes: LockedAxes,
+    player_state: PlayerState,
+    animation_timer: AnimationTimer,
 }
 
 impl Default for PlayerBundle {
@@ -210,7 +418,6 @@ impl Default for PlayerBundle {
             render_layer: PLAYER_RENDER_LAYER,
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
-                grounded: true,
                 jump_cooldown: jump_cooldown_timer,
                 air_jumps: 1,
                 max_air_jumps: 1,
@@ -233,6 +440,11 @@ impl Default for PlayerBundle {
                 ..default()
             },
             locked_axes: LockedAxes::ROTATION_LOCKED,
+            player_state: PlayerState::Idle,
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(100),
+                TimerMode::Repeating,
+            )),
         }
     }
 }
