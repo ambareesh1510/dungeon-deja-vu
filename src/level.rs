@@ -20,7 +20,7 @@ impl Plugin for LevelManagementPlugin {
             .add_systems(Update, update_player_grounded)
             .add_systems(Update, move_player)
             .add_systems(Update, loop_player)
-            .add_systems(Update, update_backwards_barrier);
+            .add_systems(Update, update_backwards_barrier)
             .add_systems(Update, animate_player);
     }
 }
