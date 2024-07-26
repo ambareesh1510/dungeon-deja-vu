@@ -39,6 +39,7 @@ impl Plugin for LevelManagementPlugin {
                 (
                     add_collider,
                     update_player_grounded,
+                    finish_level,
                     move_player,
                     loop_player,
                     update_backwards_barrier,
@@ -61,7 +62,7 @@ fn load_level(
 }
 
 
-fn cleanup_level_objects(query: Query<Entity, With<LevelIid>>, mut commands: Commands) {
+fn cleanup_level_objects(query: Query<Entity, Or<(With<LevelIid>, With<BackwardsBarrier>)>>, mut commands: Commands) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -100,7 +101,6 @@ fn update_player_grounded(
                 }
             } else {
                 if velocity.linvel.y < 0. {
-                    
                     *player_state = PlayerState::Falling;
                     
                 }
@@ -114,12 +114,21 @@ const LEVEL_IIDS: [&str; 2] = [
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
 ];
 
-fn spawn_ldtk_world(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_ldtk_world(mut commands: Commands, asset_server: Res<AssetServer>, target_level: Res<TargetLevel>) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
-        level_set: LevelSet::from_iids([LEVEL_IIDS[0]]),
+        level_set: LevelSet::from_iids([LEVEL_IIDS[target_level.0]]),
         ..default()
     });
+}
+
+fn finish_level(mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>, keys: Res<ButtonInput<KeyCode>>) {
+    let Ok(mut player_status) = query_player.get_single_mut() else {
+        return;
+    };
+    if keys.just_pressed(KeyCode::KeyF) {
+        player_status.level_finished = true;
+    }
 }
 
 fn move_player(
@@ -418,8 +427,9 @@ impl Default for AnimationInfo {
     }
 }
 #[derive(Component)]
-struct PlayerStatus {
+pub struct PlayerStatus {
     jump_cooldown: Timer,
+    pub level_finished: bool,
     // air_jumps: usize,
     // max_air_jumps: usize,
 }
@@ -467,6 +477,7 @@ impl Default for PlayerBundle {
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
                 jump_cooldown: jump_cooldown_timer,
+                level_finished: false,
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
@@ -483,10 +494,7 @@ impl Default for PlayerBundle {
                 coefficient: 0.,
                 combine_rule: CoefficientCombineRule::Min,
             },
-            spring_force: ExternalForce {
-                // force: Vec2::Y * 100.,
-                ..default()
-            },
+            spring_force: ExternalForce::default(),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             player_state: PlayerState::Idle,
             animation_timer: AnimationTimer(Timer::new(
