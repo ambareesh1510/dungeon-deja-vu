@@ -23,9 +23,15 @@ impl Plugin for LevelManagementPlugin {
                 )
             )
             .add_systems(
+                Update,
+                (
+                    inter_level_pause,
+                ).run_if(in_state(LevelLoadingState::Loading))
+            )
+            .add_systems(
                 OnEnter(LevelLoadingState::Loaded),
                 (
-                    spawn_backwards_barrier.after(spawn_ldtk_world),
+                    spawn_backwards_barrier,
                 )
             )
             .add_systems(
@@ -50,17 +56,39 @@ impl Plugin for LevelManagementPlugin {
     }
 }
 
+#[derive(Component)]
+struct InterLevelTimer(Timer);
+
 fn load_level(
+    mut commands: Commands,
     target_level: Res<TargetLevel>,
     mut query_level_set: Query<&mut LevelSet>,
-    mut next_state: ResMut<NextState<LevelLoadingState>>,
+    // mut next_state: ResMut<NextState<LevelLoadingState>>,
 ) {
+    commands.spawn(InterLevelTimer(Timer::from_seconds(0.7, TimerMode::Once)));
     if let Ok(mut level_set) = query_level_set.get_single_mut() {
         *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
     }
-    next_state.set(LevelLoadingState::Loaded);
+    println!("a");
+    // next_state.set(LevelLoadingState::Loaded);
 }
 
+fn inter_level_pause(
+    mut commands: Commands,
+    mut query_timer: Query<(Entity, &mut InterLevelTimer)>,
+    time: Res<Time>,
+    mut next_state: ResMut<NextState<LevelLoadingState>>,
+) {
+    let Ok((e, mut timer)) = query_timer.get_single_mut() else {
+        println!("did not find timer");
+        return;
+    };
+    if timer.0.finished() {
+        next_state.set(LevelLoadingState::Loaded);
+        commands.entity(e).despawn();
+    }
+    timer.0.tick(time.delta());
+}
 
 fn cleanup_level_objects(query: Query<Entity, Or<(With<LevelIid>, With<BackwardsBarrier>)>>, mut commands: Commands) {
     for entity in query.iter() {

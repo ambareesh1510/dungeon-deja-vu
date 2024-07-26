@@ -15,12 +15,6 @@ impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup_dim_mesh)
-            // .add_systems(
-            //     OnEnter(LevelLoadingState::Loaded),
-            //     (
-            //         undim_camera,
-            //     )
-            // )
             .add_systems(
                 Update,
                 (
@@ -71,7 +65,7 @@ fn setup_dim_mesh(
     commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(3000., 1000.)),
-            color: Color::srgba(0.0, 0.0, 0.0, 0.0),
+            color: Color::srgba(0.0, 0.0, 0.0, 1.0),
             ..default()
         },
         ..default()
@@ -79,7 +73,7 @@ fn setup_dim_mesh(
 
     let mut dim_camera = Camera2dBundle::default();
     dim_camera.camera.order = 10;
-    commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker/* , CameraMarker */));
+    commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
 fn setup_camera(
@@ -88,9 +82,7 @@ fn setup_camera(
 ) {
     let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
     for level in query_level.iter() {
-        // println!("entity is {e} with layer name {}", level.identifier);
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
-            // println!("level selection: {:?}", level_selection);
             let level_width = level.c_wid as f32 * 16.;
             let mut player_camera = Camera2dBundle::default();
             player_camera.projection.scaling_mode = scaling_mode;
@@ -134,8 +126,8 @@ fn dim_camera(
     let mut alpha = color_as_linear.alpha();
     if player_status.level_finished {
         alpha += time.delta().as_secs_f32() * 2.;
-        if alpha >= 1. {
-            alpha = 1.;
+        if alpha >= 1.5 {
+            alpha = 1.5;
             target_level.0 += 1;
             next_state.set(LevelLoadingState::Loading);
         }
