@@ -15,6 +15,8 @@ impl Plugin for LevelManagementPlugin {
             .insert_resource(AnimationInfo::default())
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
+            .register_ldtk_int_cell::<WaterBundle>(2)
+            .register_ldtk_int_cell::<SpikeBundle>(4)
             .add_systems(Startup, spawn_ldtk_world)
             .add_systems(OnEnter(LevelLoadingState::Loading), (load_level,))
             .add_systems(
@@ -544,6 +546,53 @@ impl Default for PlayerBundle {
                 Duration::from_millis(100),
                 TimerMode::Repeating,
             )),
+        }
+    }
+}
+
+#[derive(Default, Component)]
+struct KillPlayerMarker;
+
+#[derive(Default, Component)]
+struct WaterMarker;
+
+#[derive(Bundle, LdtkIntCell)]
+struct WaterBundle {
+    water_marker: WaterMarker,
+    kill_player_marker: KillPlayerMarker,
+    collider: Collider,
+    sensor: Sensor,
+}
+
+impl Default for WaterBundle {
+    fn default() -> Self {
+        Self {
+            water_marker: WaterMarker,
+            kill_player_marker: KillPlayerMarker,
+            collider: Collider::cuboid(8., 6.), // cuboid better because less points!!! (?)
+            sensor: Sensor,
+        }
+    }
+}
+
+#[derive(Default, Component)]
+struct SpikeMarker;
+
+#[derive(Bundle, LdtkIntCell)]
+struct SpikeBundle {
+    spike_marker: SpikeMarker,
+    kill_player_marker: KillPlayerMarker,
+    collider: Collider,
+    sensor: Sensor,
+}
+
+impl Default for SpikeBundle {
+    fn default() -> Self {
+        Self {
+            spike_marker: SpikeMarker,
+            kill_player_marker: KillPlayerMarker,
+            collider: Collider::cuboid(8., 8.), // cuboid better because less points!!! (?)
+            sensor: Sensor,
         }
     }
 }
