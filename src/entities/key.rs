@@ -56,7 +56,7 @@ pub fn check_key_interacting(
         if rapier_context.intersection_pair(player_collider, key_sensor_entity) == Some(true) {
             println!("GOT KEY");
             inventory.add_key();
-            commands.entity(*key_entity).despawn_descendants();
+            commands.entity(*key_entity).despawn_recursive();
         }
     }
 
