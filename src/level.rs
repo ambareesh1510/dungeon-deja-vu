@@ -334,7 +334,6 @@ fn animate_player(
                     {
                         atlas.index = animation_info.falling_to_idle_start;
                     }
-                    println!("atlas index: {}", atlas.index);
                     atlas.index = if atlas.index == animation_info.falling_to_idle_end {
                         *state = PlayerState::Idle;
                         atlas.index
@@ -483,7 +482,7 @@ impl Default for PlayerBundle {
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
-            collider: Collider::round_cuboid(5., 5., 2.),
+            collider: Collider::round_cuboid(5., 3., 2.),
             mass: AdditionalMassProperties::Mass(50.),
             velocity: Velocity::default(),
             friction: Friction {
