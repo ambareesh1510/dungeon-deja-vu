@@ -1,5 +1,6 @@
 mod camera;
 mod level;
+mod state;
 
 use bevy::{
     ecs::schedule::{LogLevel, ScheduleBuildSettings},
@@ -8,6 +9,7 @@ use bevy::{
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
 use level::LevelManagementPlugin;
+use state::StateManagementPlugin;
 
 fn main() {
     App::new()
@@ -20,7 +22,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
-        // .add_plugins(RapierDebugRenderPlugin::default())
-        .add_plugins((CameraManagementPlugin, LevelManagementPlugin))
+        .add_plugins(RapierDebugRenderPlugin::default())
+        .add_plugins((CameraManagementPlugin, LevelManagementPlugin, StateManagementPlugin))
         .run();
 }

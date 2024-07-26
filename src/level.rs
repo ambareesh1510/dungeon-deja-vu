@@ -4,24 +4,66 @@ use bevy_rapier2d::prelude::*;
 use std::time::Duration;
 
 use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
+use crate::state::{LevelLoadingState, TargetLevel};
 
 pub struct LevelManagementPlugin;
 
 impl Plugin for LevelManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LdtkPlugin)
-            .insert_resource(LevelSelection::index(0))
+            // .insert_resource(LevelSelection::index(0))
             .insert_resource(AnimationInfo::default())
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
-            .add_systems(Startup, spawn_level.before(spawn_backwards_barrier))
-            .add_systems(Startup, spawn_backwards_barrier.after(spawn_level))
-            .add_systems(Update, add_collider)
-            .add_systems(Update, update_player_grounded)
-            .add_systems(Update, move_player)
-            .add_systems(Update, loop_player)
-            .add_systems(Update, update_backwards_barrier)
-            .add_systems(Update, animate_player);
+            .add_systems(Startup, spawn_ldtk_world)
+            .add_systems(
+                OnEnter(LevelLoadingState::Loading),
+                (
+                    load_level,
+                )
+            )
+            .add_systems(
+                OnEnter(LevelLoadingState::Loaded),
+                (
+                    spawn_backwards_barrier.after(spawn_ldtk_world),
+                )
+            )
+            .add_systems(
+                OnExit(LevelLoadingState::Loaded),
+                (
+                    cleanup_level_objects,
+                )
+            )
+            .add_systems(
+                Update,
+                (
+                    add_collider,
+                    update_player_grounded,
+                    move_player,
+                    loop_player,
+                    update_backwards_barrier,
+                    animate_player
+                )
+                .run_if(in_state(LevelLoadingState::Loaded))
+            );
+    }
+}
+
+fn load_level(
+    target_level: Res<TargetLevel>,
+    mut query_level_set: Query<&mut LevelSet>,
+    mut next_state: ResMut<NextState<LevelLoadingState>>,
+) {
+    if let Ok(mut level_set) = query_level_set.get_single_mut() {
+        *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
+    }
+    next_state.set(LevelLoadingState::Loaded);
+}
+
+
+fn cleanup_level_objects(query: Query<Entity, With<LevelIid>>, mut commands: Commands) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -67,10 +109,15 @@ fn update_player_grounded(
     }
 }
 
-fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+const LEVEL_IIDS: [&str; 2] = [
+    "410524d0-25d0-11ef-b3d7-db494d819bf6",
+    "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
+];
+
+fn spawn_ldtk_world(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
-        // level_set: LevelSet::from_iids(["410524d0-25d0-11ef-b3d7-db494d819bf6"]),
+        level_set: LevelSet::from_iids([LEVEL_IIDS[0]]),
         ..default()
     });
 }
@@ -188,7 +235,7 @@ fn animate_player(
 ) {
     if let Ok((mut atlas, mut state, mut timer)) = query.get_single_mut() {
         timer.tick(time.delta());
-        println!("state: {:?}", *state);
+        // println!("state: {:?}", *state);
         if timer.finished() {
             match *state {
                 PlayerState::Idle => {
@@ -373,8 +420,8 @@ impl Default for AnimationInfo {
 #[derive(Component)]
 struct PlayerStatus {
     jump_cooldown: Timer,
-    air_jumps: usize,
-    max_air_jumps: usize,
+    // air_jumps: usize,
+    // max_air_jumps: usize,
 }
 
 #[derive(Component, Debug, PartialEq, Eq)]
@@ -420,8 +467,8 @@ impl Default for PlayerBundle {
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
                 jump_cooldown: jump_cooldown_timer,
-                air_jumps: 1,
-                max_air_jumps: 1,
+                // air_jumps: 1,
+                // max_air_jumps: 1,
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),

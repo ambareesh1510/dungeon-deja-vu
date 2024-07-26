@@ -3,7 +3,9 @@ use bevy::{
     prelude::*,
     render::{camera::ScalingMode, view::RenderLayers},
 };
-use bevy_ecs_ldtk::LayerMetadata;
+use bevy_ecs_ldtk::prelude::*;
+
+use crate::state::LevelLoadingState;
 
 const CAMERA_UNIT_HEIGHT: f32 = 250.;
 
@@ -11,11 +13,25 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, setup_camera)
-            // .add_systems(Update, control_camera)
-            .add_systems(Update, attach_player_camera_to_player)
-            .add_systems(Update, autoscroll_camera.after(loop_player))
-            .add_systems(Update, loop_main_cameras);
+        app
+            // .add_systems(
+            //     OnEnter(LevelLoadingState::Loaded),
+            // )
+            .add_systems(
+                Update,
+                (
+                    setup_camera,
+                    attach_player_camera_to_player,
+                    autoscroll_camera.after(loop_player),
+                    loop_main_cameras,
+                ).run_if(in_state(LevelLoadingState::Loaded))
+            )
+            .add_systems(
+                OnExit(LevelLoadingState::Loaded),
+                (
+                    cleanup_cameras,
+                )
+            );
     }
 }
 
@@ -23,7 +39,7 @@ pub const PLAYER_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const PLAYER_CAMERA_ORDER: isize = 1;
 
 #[derive(Component)]
-struct CameraMarker;
+pub struct CameraMarker;
 
 #[derive(Component)]
 pub struct PlayerCameraMarker;
@@ -31,10 +47,32 @@ pub struct PlayerCameraMarker;
 #[derive(Component)]
 struct MainCameraMarker;
 
+fn cleanup_cameras(query: Query<Entity, With<CameraMarker>>, mut commands: Commands) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
     let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
+    // let c = query_level.iter().count();
+    // let mut c = 0;
+    // for level in query_level.iter() {
+    //     println!("level is {}", level.identifier);
+    //     c += 1;
+    // }
+    // if c != 0 {
+    //     println!("level count is {}", c);
+    //     return;
+    // }
+    // let Ok(ent) = query_level_added.get_single() else {
+    //     return;
+    // };
+    
     for level in query_level.iter() {
+        // println!("entity is {e} with layer name {}", level.identifier);
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+            // println!("level selection: {:?}", level_selection);
             let level_width = level.c_wid as f32 * 16.;
             let mut player_camera = Camera2dBundle::default();
             player_camera.projection.scaling_mode = scaling_mode;
@@ -55,35 +93,7 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
             main_camera_2.transform.translation.x = level_width;
             main_camera_2.camera.order = -1;
             commands.spawn((main_camera_2, MainCameraMarker, CameraMarker));
-        }
-    }
-}
-
-fn control_camera(
-    mut query_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        With<PlayerCameraMarker>,
-    >,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    if let Ok((mut camera_transform, mut camera_projection)) = query_camera.get_single_mut() {
-        if keys.pressed(KeyCode::KeyW) {
-            camera_transform.translation.y += 1.;
-        }
-        if keys.pressed(KeyCode::KeyS) {
-            camera_transform.translation.y -= 1.;
-        }
-        if keys.pressed(KeyCode::KeyA) {
-            camera_transform.translation.x -= 1.;
-        }
-        if keys.pressed(KeyCode::KeyD) {
-            camera_transform.translation.x += 1.;
-        }
-        if keys.pressed(KeyCode::Minus) {
-            camera_projection.scale *= 1.1;
-        }
-        if keys.pressed(KeyCode::Equal) {
-            camera_projection.scale /= 1.1;
+            return;
         }
     }
 }
@@ -153,7 +163,6 @@ fn autoscroll_camera(
         ),
     >,
     query_level: Query<&LayerMetadata>,
-    time: Res<Time>,
 ) {
     if let Ok(player_transform) = query_player.get_single() {
         let mut level_width = 1000. * 16.;
