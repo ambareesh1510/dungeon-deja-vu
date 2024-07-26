@@ -40,6 +40,7 @@ impl Plugin for LevelManagementPlugin {
                     update_backwards_barrier,
                     animate_player,
                     set_player_checkpoint,
+                    kill_player,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );
@@ -393,7 +394,6 @@ pub fn loop_player(
                     if player_transform.translation.x < 0. {
                         player_transform.translation.x += width;
                         camera_transform.translation.x += width;
-                        // camera_transform.translation.x = player_transform.translation.x;
                         println!(
                             "looped camera transform is {}",
                             camera_transform.translation.x
@@ -402,7 +402,6 @@ pub fn loop_player(
                         player_transform.translation.x -= width;
                         camera_transform.translation.x -= width;
                     }
-                    // player_transform.translation.x = ((player_transform.translation.x % width) + width) % width;
                 }
             }
         }
@@ -419,6 +418,30 @@ fn set_player_checkpoint(
     for SetCheckpointEvent(coords) in checkpoint_events.read() {
         player_checkpoint.0 = *coords;
         println!("set player checkpoint to {}", player_checkpoint.0)
+    }
+}
+
+fn kill_player(
+    mut query_player: Query<(Entity, &mut PlayerStatus), With<PlayerMarker>>,
+    query_hazards: Query<Entity, With<KillPlayerMarker>>,
+    rapier_context: Res<RapierContext>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    let Ok((player_entity, mut player_status)) = query_player.get_single_mut() else {
+        return;
+    };
+    let mut kill_player = false;
+    if keys.just_pressed(KeyCode::KeyR) {
+        kill_player = true;
+    } else {
+        for hazard in query_hazards.iter() {
+            if rapier_context.intersection_pair(player_entity, hazard) == Some(true) {
+                kill_player = true;
+            }
+        }
+    }
+    if kill_player {
+        player_status.dead = true;
     }
 }
 
@@ -468,6 +491,7 @@ impl Default for AnimationInfo {
 pub struct PlayerStatus {
     jump_cooldown: Timer,
     pub level_finished: bool,
+    pub dead: bool,
     // air_jumps: usize,
     // max_air_jumps: usize,
 }
@@ -506,7 +530,7 @@ impl PlayerInventory {
 }
 
 #[derive(Component, Debug)]
-struct PlayerCheckpoint(Vec2);
+pub struct PlayerCheckpoint(pub Vec2);
 
 #[derive(Event)]
 pub struct SetCheckpointEvent(pub Vec2);
@@ -542,6 +566,7 @@ impl Default for PlayerBundle {
             player_status: PlayerStatus {
                 jump_cooldown: jump_cooldown_timer,
                 level_finished: false,
+                dead: false,
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
@@ -589,7 +614,7 @@ impl Default for WaterBundle {
         Self {
             water_marker: WaterMarker,
             kill_player_marker: KillPlayerMarker,
-            collider: Collider::cuboid(8., 6.), // cuboid better because less points!!! (?)
+            collider: Collider::cuboid(8., 6.),
             sensor: Sensor,
         }
     }
@@ -611,7 +636,7 @@ impl Default for SpikeBundle {
         Self {
             spike_marker: SpikeMarker,
             kill_player_marker: KillPlayerMarker,
-            collider: Collider::cuboid(8., 8.), // cuboid better because less points!!! (?)
+            collider: Collider::cuboid(8., 8.),
             sensor: Sensor,
         }
     }

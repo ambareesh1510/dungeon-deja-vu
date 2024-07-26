@@ -1,4 +1,4 @@
-use crate::{level::{loop_player, PlayerMarker, PlayerStatus}, state::TargetLevel};
+use crate::{level::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel};
 use bevy::{
     prelude::*,
     render::{camera::ScalingMode, view::RenderLayers},
@@ -23,7 +23,7 @@ impl Plugin for CameraManagementPlugin {
                     attach_player_camera_to_player,
                     autoscroll_camera.after(loop_player),
                     loop_main_cameras,
-                    dim_camera,
+                    dim_camera.before(loop_main_cameras).before(autoscroll_camera),
                 ).run_if(in_state(LevelLoadingState::Loaded))
             )
             .add_systems(
@@ -111,12 +111,13 @@ fn setup_camera(
 
 fn dim_camera(
     mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
-    query_player_status: Query<&PlayerStatus, With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerStatus, &PlayerCheckpoint, &mut Transform), With<PlayerMarker>>,
+    mut query_cameras: Query<&mut Transform, (With<CameraMarker>, Without<PlayerMarker>)>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
 ) {
-    let Ok(player_status) = query_player_status.get_single() else {
+    let Ok((mut player_status, player_checkpoint, mut player_transform)) = query_player.get_single_mut() else {
         return;
     };
     let Ok(mut dim_sprite) = query_dim_sprite.get_single_mut() else {
@@ -124,12 +125,25 @@ fn dim_camera(
     };
     let color_as_linear = dim_sprite.color.to_linear();
     let mut alpha = color_as_linear.alpha();
-    if player_status.level_finished {
+    if player_status.level_finished || player_status.dead {
         alpha += time.delta().as_secs_f32() * 2.;
         if alpha >= 1.5 {
             alpha = 1.5;
-            target_level.0 += 1;
-            next_state.set(LevelLoadingState::Loading);
+            if player_status.level_finished {
+                target_level.0 += 1;
+                next_state.set(LevelLoadingState::Loading);
+            } else {
+                player_status.dead = false;
+                let new_translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
+                let delta = new_translation - player_transform.translation;
+                // player_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
+                player_transform.translation += delta;
+                for mut camera_transform in query_cameras.iter_mut() {
+                    camera_transform.translation += delta;
+                }
+                //
+                // camera_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
+            }
         }
     } else {
         alpha -= time.delta().as_secs_f32() * 2.;
@@ -186,9 +200,14 @@ fn loop_main_cameras(
             level_width = level.c_wid as f32 * 16.;
         }
     }
+    println!("printing camera translations");
     for mut camera_transform in query_main_cameras.iter_mut() {
+        println!("camera transform is {}", camera_transform.translation.x);
         if camera_transform.translation.x > 3. * level_width / 2. {
             camera_transform.translation.x -= 2. * level_width;
+        }
+        if camera_transform.translation.x < -0.5 * level_width {
+            camera_transform.translation.x += 2. * level_width;
         }
     }
 }
