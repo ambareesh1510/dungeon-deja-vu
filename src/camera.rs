@@ -1,9 +1,11 @@
-use crate::level::{loop_player, PlayerMarker};
+use crate::{level::{loop_player, PlayerMarker, PlayerStatus}, state::TargetLevel};
 use bevy::{
     prelude::*,
     render::{camera::ScalingMode, view::RenderLayers},
 };
-use bevy_ecs_ldtk::LayerMetadata;
+use bevy_ecs_ldtk::prelude::*;
+
+use crate::state::LevelLoadingState;
 
 const CAMERA_UNIT_HEIGHT: f32 = 250.;
 
@@ -11,11 +13,25 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, setup_camera)
-            // .add_systems(Update, control_camera)
-            .add_systems(Update, attach_player_camera_to_player)
-            .add_systems(Update, autoscroll_camera.after(loop_player))
-            .add_systems(Update, loop_main_cameras);
+        app
+            .add_systems(Startup, setup_dim_mesh)
+            .add_systems(
+                Update,
+                (
+                    // undim_camera,
+                    setup_camera,
+                    attach_player_camera_to_player,
+                    autoscroll_camera.after(loop_player),
+                    loop_main_cameras,
+                    dim_camera,
+                ).run_if(in_state(LevelLoadingState::Loaded))
+            )
+            .add_systems(
+                OnExit(LevelLoadingState::Loaded),
+                (
+                    cleanup_cameras,
+                )
+            );
     }
 }
 
@@ -23,7 +39,7 @@ pub const PLAYER_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const PLAYER_CAMERA_ORDER: isize = 1;
 
 #[derive(Component)]
-struct CameraMarker;
+pub struct CameraMarker;
 
 #[derive(Component)]
 pub struct PlayerCameraMarker;
@@ -31,7 +47,39 @@ pub struct PlayerCameraMarker;
 #[derive(Component)]
 struct MainCameraMarker;
 
-fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
+#[derive(Component)]
+struct DimCameraMarker;
+
+#[derive(Component)]
+struct DimMeshMarker;
+
+fn cleanup_cameras(query: Query<Entity, With<CameraMarker>>, mut commands: Commands) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn setup_dim_mesh(
+    mut commands: Commands
+) {
+    commands.spawn(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(3000., 1000.)),
+            color: Color::srgba(0.0, 0.0, 0.0, 1.0),
+            ..default()
+        },
+        ..default()
+    }).insert(DimMeshMarker).insert(RenderLayers::layer(10));
+
+    let mut dim_camera = Camera2dBundle::default();
+    dim_camera.camera.order = 10;
+    commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
+}
+
+fn setup_camera(
+    mut commands: Commands,
+    query_level: Query<&LayerMetadata, Added<LayerMetadata>>
+) {
     let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
     for level in query_level.iter() {
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
@@ -55,37 +103,41 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
             main_camera_2.transform.translation.x = level_width;
             main_camera_2.camera.order = -1;
             commands.spawn((main_camera_2, MainCameraMarker, CameraMarker));
+
+            return;
         }
     }
 }
 
-fn control_camera(
-    mut query_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        With<PlayerCameraMarker>,
-    >,
-    keys: Res<ButtonInput<KeyCode>>,
+fn dim_camera(
+    mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
+    query_player_status: Query<&PlayerStatus, With<PlayerMarker>>,
+    mut next_state: ResMut<NextState<LevelLoadingState>>,
+    mut target_level: ResMut<TargetLevel>,
+    time: Res<Time>,
 ) {
-    if let Ok((mut camera_transform, mut camera_projection)) = query_camera.get_single_mut() {
-        if keys.pressed(KeyCode::KeyW) {
-            camera_transform.translation.y += 1.;
+    let Ok(player_status) = query_player_status.get_single() else {
+        return;
+    };
+    let Ok(mut dim_sprite) = query_dim_sprite.get_single_mut() else {
+        return;
+    };
+    let color_as_linear = dim_sprite.color.to_linear();
+    let mut alpha = color_as_linear.alpha();
+    if player_status.level_finished {
+        alpha += time.delta().as_secs_f32() * 2.;
+        if alpha >= 1.5 {
+            alpha = 1.5;
+            target_level.0 += 1;
+            next_state.set(LevelLoadingState::Loading);
         }
-        if keys.pressed(KeyCode::KeyS) {
-            camera_transform.translation.y -= 1.;
-        }
-        if keys.pressed(KeyCode::KeyA) {
-            camera_transform.translation.x -= 1.;
-        }
-        if keys.pressed(KeyCode::KeyD) {
-            camera_transform.translation.x += 1.;
-        }
-        if keys.pressed(KeyCode::Minus) {
-            camera_projection.scale *= 1.1;
-        }
-        if keys.pressed(KeyCode::Equal) {
-            camera_projection.scale /= 1.1;
+    } else {
+        alpha -= time.delta().as_secs_f32() * 2.;
+        if alpha < 0. {
+            alpha = 0.;
         }
     }
+    dim_sprite.color = Color::LinearRgba(color_as_linear.with_alpha(alpha));
 }
 
 // TODO: make this use delta time!
@@ -143,17 +195,17 @@ fn loop_main_cameras(
 
 fn autoscroll_camera(
     mut query_main_cameras: Query<&mut Transform, With<MainCameraMarker>>,
-    mut query_player_camera: Query<&mut Transform, (With<CameraMarker>, Without<MainCameraMarker>)>,
+    mut query_player_camera: Query<&mut Transform, (With<PlayerCameraMarker>, Without<MainCameraMarker>)>,
     query_player: Query<
         &mut Transform,
         (
             With<PlayerMarker>,
             Without<CameraMarker>,
+            Without<PlayerCameraMarker>,
             Without<MainCameraMarker>,
         ),
     >,
     query_level: Query<&LayerMetadata>,
-    time: Res<Time>,
 ) {
     if let Ok(player_transform) = query_player.get_single() {
         let mut level_width = 1000. * 16.;
