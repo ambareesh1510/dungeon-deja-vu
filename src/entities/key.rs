@@ -1,17 +1,11 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::camera::PLAYER_RENDER_LAYER;
 use crate::level::{PlayerInventory, PlayerMarker};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
-
-#[derive(Component, Debug)]
-pub struct KeyInfo {
-    id: usize,
-}
 
 #[derive(Component, Debug)]
 pub struct KeySensorMarker;
@@ -20,26 +14,15 @@ pub struct KeySensorMarker;
 pub struct KeyBundle {
     #[sprite_sheet_bundle]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
-    render_layer: RenderLayers,
     key_marker: KeyMarker,
-    #[with(key_initial_info)]
-    key_info: KeyInfo,
 }
 
 impl Default for KeyBundle {
     fn default() -> Self {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
-            render_layer: PLAYER_RENDER_LAYER,
             key_marker: KeyMarker,
-            key_info: KeyInfo { id: 0 },
         }
-    }
-}
-
-fn key_initial_info(ei: &EntityInstance) -> KeyInfo {
-    KeyInfo {
-        id: *ei.get_int_field("key_id").unwrap() as usize,
     }
 }
 
@@ -62,17 +45,17 @@ pub fn check_key_interacting(
     rapier_context: Res<RapierContext>,
     mut query_keys: Query<(&mut Parent, Entity), With<KeySensorMarker>>,
     mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
-    mut query_key_info: Query<(Entity, &mut KeyInfo)>,
+    mut query_key_entity: Query<Entity>,
 ) {
     let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
         return;
     };
 
     for (key, key_sensor_entity) in query_keys.iter_mut() {
-        let (key_entity, key_info) = &mut query_key_info.get_mut(key.get()).unwrap();
+        let key_entity = &mut query_key_entity.get_mut(key.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, key_sensor_entity) == Some(true) {
-            println!("GOT KEY {}", key_info.id);
-            inventory.add_key(key_info.id);
+            println!("GOT KEY");
+            inventory.add_key();
             commands.entity(*key_entity).despawn_descendants();
         }
     }

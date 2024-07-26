@@ -468,25 +468,24 @@ enum PlayerState {
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct AnimationTimer( pub Timer);
+pub struct AnimationTimer(pub Timer);
 
 #[derive(Component, Debug)]
 pub struct PlayerInventory {
-    keys: Vec<usize>,
+    num_keys: usize,
 }
 
 impl PlayerInventory {
-    pub fn has_key(&self, id: usize) -> bool {
-        for key_id in self.keys.iter() {
-            if *key_id == id {
-                return true;
-            }
-        }
-        false
+    pub fn has_key(&self) -> bool {
+        self.num_keys > 0
     }
 
-    pub fn add_key(&mut self, id: usize) {
-        self.keys.push(id);
+    pub fn use_key(&mut self) {
+        self.num_keys -= 1;
+    }
+
+    pub fn add_key(&mut self) {
+        self.num_keys += 1;
     }
 }
 
@@ -524,7 +523,7 @@ impl Default for PlayerBundle {
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
-            player_inventory: PlayerInventory { keys: vec![] },
+            player_inventory: PlayerInventory { num_keys: 0 },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
             collider: Collider::round_cuboid(5., 3., 2.),
