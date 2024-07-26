@@ -10,8 +10,8 @@
 	},
 	"iid": "4104d6b0-25d0-11ef-b3d7-6177ac060500",
 	"jsonVersion": "1.5.3",
-	"appBuildId": 478196,
-	"nextUid": 431,
+	"appBuildId": 473703,
+	"nextUid": 433,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "LinearVertical",
@@ -2773,7 +2773,7 @@
 			"fieldDefs": []
 		},
 		{
-			"identifier": "LockedDoor",
+			"identifier": "Door",
 			"uid": 126,
 			"tags": [],
 			"exportToToc": false,
@@ -2796,7 +2796,7 @@
 			"renderMode": "Tile",
 			"showName": true,
 			"tilesetId": 38,
-			"tileRenderMode": "FitInside",
+			"tileRenderMode": "FullSizeUncropped",
 			"tileRect": { "tilesetUid": 38, "x": 192, "y": 48, "w": 16, "h": 32 },
 			"uiTileRect": null,
 			"nineSliceBorders": [],
@@ -2805,7 +2805,45 @@
 			"limitBehavior": "MoveLastOne",
 			"pivotX": 0,
 			"pivotY": 0,
-			"fieldDefs": []
+			"fieldDefs": [
+				{
+					"identifier": "door_id",
+					"doc": "Matches the id of the corresponding key",
+					"__type": "Int",
+					"uid": 431,
+					"type": "F_Int",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "ValueOnly",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"exportToToc": false,
+					"searchable": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				}
+			]
 		},
 		{
 			"identifier": "Key",
@@ -2840,7 +2878,45 @@
 			"limitBehavior": "MoveLastOne",
 			"pivotX": 0,
 			"pivotY": 0,
-			"fieldDefs": []
+			"fieldDefs": [
+				{
+					"identifier": "key_id",
+					"doc": "Matches corresponding door id",
+					"__type": "Int",
+					"uid": 432,
+					"type": "F_Int",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "ValueOnly",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"exportToToc": false,
+					"searchable": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				}
+			]
 		},
 		{
 			"identifier": "Powerup",
@@ -3056,7 +3132,7 @@
 							"fieldInstances": []
 						},
 						{
-							"__identifier": "LockedDoor",
+							"__identifier": "Door",
 							"__grid": [50,15],
 							"__pivot": [0,0],
 							"__tags": [],
@@ -3067,7 +3143,7 @@
 							"height": 32,
 							"defUid": 126,
 							"px": [800,240],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "door_id", "__type": "Int", "__value": 2, "__tile": null, "defUid": 431, "realEditorValues": [{ "id": "V_Int", "params": [2] }] }]
 						},
 						{
 							"__identifier": "Key",
@@ -3081,21 +3157,21 @@
 							"height": 16,
 							"defUid": 127,
 							"px": [624,400],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "key_id", "__type": "Int", "__value": 2, "__tile": null, "defUid": 432, "realEditorValues": [{ "id": "V_Int", "params": [2] }] }]
 						},
 						{
-							"__identifier": "LockedDoor",
+							"__identifier": "Door",
 							"__grid": [5,23],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 38, "x": 192, "y": 48, "w": 16, "h": 32 },
 							"__smartColor": "#EAD4AA",
-							"iid": "61fe0210-25d0-11ef-a5a2-b929a47510ea",
+							"iid": "76d37590-25d0-11ef-a1bb-63532a268a85",
 							"width": 16,
 							"height": 32,
 							"defUid": 126,
 							"px": [80,368],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "door_id", "__type": "Int", "__value": 1, "__tile": null, "defUid": 431, "realEditorValues": [{ "id": "V_Int", "params": [1] }] }]
 						},
 						{
 							"__identifier": "Key",
@@ -3104,12 +3180,12 @@
 							"__tags": [],
 							"__tile": { "tilesetUid": 128, "x": 48, "y": 32, "w": 16, "h": 16 },
 							"__smartColor": "#E4A672",
-							"iid": "695547d0-25d0-11ef-a5a2-9dee38ee6668",
+							"iid": "8ae8e880-25d0-11ef-a1bb-67d7a848c4d5",
 							"width": 16,
 							"height": 16,
 							"defUid": 127,
 							"px": [16,384],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "key_id", "__type": "Int", "__value": 1, "__tile": null, "defUid": 432, "realEditorValues": [{ "id": "V_Int", "params": [1] }] }]
 						}
 					]
 				},

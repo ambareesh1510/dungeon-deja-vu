@@ -16,30 +16,16 @@ impl Plugin for LevelManagementPlugin {
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .add_systems(Startup, spawn_ldtk_world)
-            .add_systems(
-                OnEnter(LevelLoadingState::Loading),
-                (
-                    load_level,
-                )
-            )
+            .add_systems(OnEnter(LevelLoadingState::Loading), (load_level,))
             .add_systems(
                 Update,
-                (
-                    inter_level_pause,
-                ).run_if(in_state(LevelLoadingState::Loading))
+                (inter_level_pause,).run_if(in_state(LevelLoadingState::Loading)),
             )
             .add_systems(
                 OnEnter(LevelLoadingState::Loaded),
-                (
-                    spawn_backwards_barrier,
-                )
+                (spawn_backwards_barrier,),
             )
-            .add_systems(
-                OnExit(LevelLoadingState::Loaded),
-                (
-                    cleanup_level_objects,
-                )
-            )
+            .add_systems(OnExit(LevelLoadingState::Loaded), (cleanup_level_objects,))
             .add_systems(
                 Update,
                 (
@@ -49,9 +35,9 @@ impl Plugin for LevelManagementPlugin {
                     move_player,
                     loop_player,
                     update_backwards_barrier,
-                    animate_player
+                    animate_player,
                 )
-                .run_if(in_state(LevelLoadingState::Loaded))
+                    .run_if(in_state(LevelLoadingState::Loaded)),
             );
     }
 }
@@ -90,7 +76,10 @@ fn inter_level_pause(
     timer.0.tick(time.delta());
 }
 
-fn cleanup_level_objects(query: Query<Entity, Or<(With<LevelIid>, With<BackwardsBarrier>)>>, mut commands: Commands) {
+fn cleanup_level_objects(
+    query: Query<Entity, Or<(With<LevelIid>, With<BackwardsBarrier>)>>,
+    mut commands: Commands,
+) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -130,7 +119,6 @@ fn update_player_grounded(
             } else {
                 if velocity.linvel.y < 0. {
                     *player_state = PlayerState::Falling;
-                    
                 }
             }
         }
@@ -142,7 +130,11 @@ const LEVEL_IIDS: [&str; 2] = [
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
 ];
 
-fn spawn_ldtk_world(mut commands: Commands, asset_server: Res<AssetServer>, target_level: Res<TargetLevel>) {
+fn spawn_ldtk_world(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    target_level: Res<TargetLevel>,
+) {
     commands.spawn(LdtkWorldBundle {
         ldtk_handle: asset_server.load("level.ldtk"),
         level_set: LevelSet::from_iids([LEVEL_IIDS[target_level.0]]),
@@ -150,7 +142,10 @@ fn spawn_ldtk_world(mut commands: Commands, asset_server: Res<AssetServer>, targ
     });
 }
 
-fn finish_level(mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>, keys: Res<ButtonInput<KeyCode>>) {
+fn finish_level(
+    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
     let Ok(mut player_status) = query_player.get_single_mut() else {
         return;
     };
@@ -475,6 +470,26 @@ enum PlayerState {
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
+#[derive(Component, Debug)]
+pub struct PlayerInventory {
+    keys: Vec<usize>,
+}
+
+impl PlayerInventory {
+    pub fn has_key(&self, id: usize) -> bool {
+        for key_id in self.keys.iter() {
+            if *key_id == id {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn add_key(&mut self, id: usize) {
+        self.keys.push(id);
+    }
+}
+
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {
     #[sprite_sheet_bundle("../assets/spritesheets/slimespritesheet.png", 16, 16, 11, 2, 0, 0, 0)]
@@ -482,6 +497,7 @@ struct PlayerBundle {
     render_layer: RenderLayers,
     player_marker: PlayerMarker,
     player_status: PlayerStatus,
+    player_inventory: PlayerInventory,
     rigid_body: RigidBody,
     collider: Collider,
     mass: AdditionalMassProperties,
@@ -508,6 +524,7 @@ impl Default for PlayerBundle {
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
+            player_inventory: PlayerInventory { keys: vec![] },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
             collider: Collider::round_cuboid(5., 3., 2.),

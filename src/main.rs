@@ -1,4 +1,5 @@
 mod camera;
+mod entities;
 mod level;
 mod state;
 
@@ -8,6 +9,7 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
+use entities::EntityManagementPlugin;
 use level::LevelManagementPlugin;
 use state::StateManagementPlugin;
 
@@ -23,6 +25,11 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         .add_plugins(RapierDebugRenderPlugin::default())
-        .add_plugins((CameraManagementPlugin, LevelManagementPlugin, StateManagementPlugin))
+        .add_plugins((
+            CameraManagementPlugin,
+            LevelManagementPlugin,
+            StateManagementPlugin,
+            EntityManagementPlugin,
+        ))
         .run();
 }
