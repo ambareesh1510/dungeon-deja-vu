@@ -468,7 +468,7 @@ enum PlayerState {
 }
 
 #[derive(Component, Deref, DerefMut)]
-struct AnimationTimer(Timer);
+pub struct AnimationTimer( pub Timer);
 
 #[derive(Component, Debug)]
 pub struct PlayerInventory {
@@ -492,7 +492,7 @@ impl PlayerInventory {
 
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/slimespritesheet.png", 16, 16, 11, 2, 0, 0, 0)]
+    #[sprite_sheet_bundle("../assets/spritesheets/slimespritesheet.png", 16, 16, 11, 2, 1, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     render_layer: RenderLayers,
     player_marker: PlayerMarker,

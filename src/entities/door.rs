@@ -14,6 +14,7 @@ pub struct DoorState {
     unlocked: bool,
 }
 
+
 #[derive(Component, Debug)]
 struct DoorColliderMarker;
 
@@ -22,7 +23,7 @@ pub struct DoorSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct DoorBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/door.png", 16, 32, 2, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     render_layer: RenderLayers,
     door_marker: DoorMarker,
@@ -82,6 +83,7 @@ pub fn check_door_interacting(
     mut query_doors: Query<(&mut Parent, Entity), With<DoorSensorMarker>>,
     query_player: Query<(&PlayerInventory, Entity), With<PlayerMarker>>,
     mut query_door_state: Query<(Entity, &mut DoorState)>,
+    mut query_door_texture: Query<&mut TextureAtlas, With <DoorMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
     let Ok((inventory, player_collider)) = query_player.get_single() else {
@@ -93,11 +95,13 @@ pub fn check_door_interacting(
 
     for (door, door_collider) in query_doors.iter_mut() {
         let (door_entity, door_state) = &mut query_door_state.get_mut(door.get()).unwrap();
+        let atlas = &mut query_door_texture.get_mut(door.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
             if inventory.has_key(door_state.id) {
                 println!("UNLOCKING DOOR {}", door_state.id);
                 door_state.unlocked = true;
                 commands.entity(*door_entity).despawn_descendants();
+                atlas.index = 1;
             } else {
                 println!("NEED KEY FOR DOOR {}", door_state.id);
             }
