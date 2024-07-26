@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::level::{PlayerInventory, PlayerMarker};
+use crate::level::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -44,10 +44,11 @@ pub fn check_key_interacting(
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
     mut query_keys: Query<(&mut Parent, Entity), With<KeySensorMarker>>,
-    mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerInventory, &Transform, Entity), With<PlayerMarker>>,
     mut query_key_entity: Query<Entity>,
+    mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
+    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut() else {
         return;
     };
 
@@ -57,10 +58,7 @@ pub fn check_key_interacting(
             println!("GOT KEY");
             inventory.add_key();
             commands.entity(*key_entity).despawn_recursive();
+            checkpoint_event_writer.send(SetCheckpointEvent(player_transform.translation.xy()));
         }
     }
-
-    // for door in query_doors.iter() {
-    //     println!("{:#?}", door);
-    // }
 }

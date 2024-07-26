@@ -13,6 +13,7 @@ impl Plugin for LevelManagementPlugin {
         app.add_plugins(LdtkPlugin)
             // .insert_resource(LevelSelection::index(0))
             .insert_resource(AnimationInfo::default())
+            .add_event::<SetCheckpointEvent>()
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .register_ldtk_int_cell::<WaterBundle>(2)
@@ -38,6 +39,7 @@ impl Plugin for LevelManagementPlugin {
                     loop_player,
                     update_backwards_barrier,
                     animate_player,
+                    set_player_checkpoint,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );
@@ -51,14 +53,11 @@ fn load_level(
     mut commands: Commands,
     target_level: Res<TargetLevel>,
     mut query_level_set: Query<&mut LevelSet>,
-    // mut next_state: ResMut<NextState<LevelLoadingState>>,
 ) {
     commands.spawn(InterLevelTimer(Timer::from_seconds(0.7, TimerMode::Once)));
     if let Ok(mut level_set) = query_level_set.get_single_mut() {
         *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
     }
-    println!("a");
-    // next_state.set(LevelLoadingState::Loaded);
 }
 
 fn inter_level_pause(
@@ -87,8 +86,8 @@ fn cleanup_level_objects(
     }
 }
 
-fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>>) {
-    if let Ok(entity) = query.get_single() {
+fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added<PlayerMarker>>) {
+    if let Ok((entity, player_transform)) = query.get_single() {
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Collider::round_cuboid(3., 2., 2.),
@@ -98,6 +97,7 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
                 PlayerJumpColliderMarker,
             ));
         });
+        commands.entity(entity).insert(PlayerCheckpoint(player_transform.translation.xy()));
     }
 }
 
@@ -409,6 +409,19 @@ pub fn loop_player(
     }
 }
 
+fn set_player_checkpoint(
+    mut query_player_checkpoint: Query<&mut PlayerCheckpoint, With<PlayerMarker>>,
+    mut checkpoint_events: EventReader<SetCheckpointEvent>
+) {
+    let Ok(mut player_checkpoint) = query_player_checkpoint.get_single_mut() else {
+        return;
+    };
+    for SetCheckpointEvent(coords) in checkpoint_events.read() {
+        player_checkpoint.0 = *coords;
+        println!("set player checkpoint to {}", player_checkpoint.0)
+    }
+}
+
 #[derive(Component)]
 struct PlayerJumpColliderMarker;
 
@@ -450,6 +463,7 @@ impl Default for AnimationInfo {
         }
     }
 }
+
 #[derive(Component)]
 pub struct PlayerStatus {
     jump_cooldown: Timer,
@@ -490,6 +504,12 @@ impl PlayerInventory {
         self.num_keys += 1;
     }
 }
+
+#[derive(Component, Debug)]
+struct PlayerCheckpoint(Vec2);
+
+#[derive(Event)]
+pub struct SetCheckpointEvent(pub Vec2);
 
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {

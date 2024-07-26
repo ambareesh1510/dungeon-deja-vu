@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::level::{PlayerInventory, PlayerMarker};
+use crate::level::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct DoorMarker;
@@ -65,12 +65,13 @@ pub fn check_door_interacting(
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
     mut query_doors: Query<(&mut Parent, Entity), With<DoorSensorMarker>>,
-    mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerInventory, &Transform, Entity), With<PlayerMarker>>,
     mut query_door_state: Query<(Entity, &mut DoorState)>,
     mut query_door_texture: Query<&mut TextureAtlas, With<DoorMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
+    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut() else {
         return;
     };
     if !keys.just_pressed(KeyCode::KeyQ) {
@@ -87,13 +88,10 @@ pub fn check_door_interacting(
                 commands.entity(*door_entity).despawn_descendants();
                 inventory.use_key();
                 atlas.index = 1;
+                checkpoint_event_writer.send(SetCheckpointEvent(player_transform.translation.xy()));
             } else {
                 println!("NEED KEY FOR DOOR");
             }
         }
     }
-
-    // for door in query_doors.iter() {
-    //     println!("{:#?}", door);
-    // }
 }
