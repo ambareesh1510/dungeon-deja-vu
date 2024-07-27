@@ -36,6 +36,7 @@ impl Plugin for CameraManagementPlugin {
 }
 
 pub const PLAYER_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
+pub const BACKGROUND_WINDOWS_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 const PLAYER_CAMERA_ORDER: isize = 1;
 
 #[derive(Component)]
@@ -46,6 +47,9 @@ pub struct PlayerCameraMarker;
 
 #[derive(Component)]
 struct MainCameraMarker;
+
+#[derive(Component)]
+struct BackgroundWindowCameraMarker;
 
 #[derive(Component)]
 struct DimCameraMarker;
@@ -77,9 +81,25 @@ fn setup_dim_mesh(mut commands: Commands) {
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
-fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
+fn setup_camera(mut commands: Commands, query_level: Query<(Entity, &LayerMetadata), Added<LayerMetadata>>) {
     let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
-    for level in query_level.iter() {
+
+    for (entity, level) in query_level.iter() {
+        println!("Layer: {}", level.identifier);
+        if level.identifier == "BackgroundWindows" {
+            commands.entity(entity).insert(BACKGROUND_WINDOWS_RENDER_LAYER);
+
+            let mut background_window_camera = Camera2dBundle::default();
+            background_window_camera.projection.scaling_mode = scaling_mode;
+            background_window_camera.camera.order = -2;
+            commands.spawn((
+                background_window_camera,
+                BackgroundWindowCameraMarker,
+                CameraMarker,
+                BACKGROUND_WINDOWS_RENDER_LAYER,
+            ));
+        }
+
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
             let level_width = level.c_wid as f32 * 16.;
             let mut player_camera = Camera2dBundle::default();
