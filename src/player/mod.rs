@@ -127,7 +127,7 @@ impl Default for PlayerBundle {
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
-            collider: Collider::round_cuboid(6., 3., 2.),
+            collider: Collider::round_cuboid(5., 3., 2.),
             mass: AdditionalMassProperties::Mass(50.),
             velocity: Velocity::default(),
             friction: Friction {
@@ -155,7 +155,7 @@ fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Adde
         commands.entity(entity).remove::<Restitution>();
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
-                Collider::round_cuboid(6., 3., 2.),
+                Collider::round_cuboid(5., 3., 2.),
                 TransformBundle::from_transform(Transform::from_xyz(0., -2., 0.)),
                 Friction {
                     coefficient: 0.,
