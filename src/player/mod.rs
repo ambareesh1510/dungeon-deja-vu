@@ -21,7 +21,7 @@ impl Plugin for PlayerManagementPlugin {
             .add_systems(
                 Update,
                 (
-                    add_jump_collider,
+                    add_colliders,
                     update_player_grounded,
                     move_player,
                     loop_player,
@@ -38,7 +38,15 @@ impl Plugin for PlayerManagementPlugin {
 pub struct PlayerMarker;
 
 #[derive(Component)]
+pub struct PlayerColliderMarker;
+
+#[derive(Component)]
 pub struct PlayerJumpColliderMarker;
+
+#[derive(Component)]
+pub struct PlayerWallColliderMarker {
+    dir: usize,
+}
 
 #[derive(Component)]
 pub struct PlayerStatus {
@@ -66,6 +74,9 @@ pub struct PlayerInventory {
     pub max_extra_jumps: usize,
     pub extra_jumps: usize,
     pub air_jumps: usize,
+    pub wall_jump_cd: [Timer; 2],
+    pub on_wall: [bool; 2],
+    pub has_wall_jump: bool,
 }
 
 #[derive(Bundle, LdtkEntity)]
@@ -82,7 +93,6 @@ struct PlayerBundle {
     velocity: Velocity,
     friction: Friction,
     restitution: Restitution,
-    spring_force: ExternalForce,
     locked_axes: LockedAxes,
     player_state: PlayerState,
     animation_timer: AnimationTimer,
@@ -108,6 +118,12 @@ impl Default for PlayerBundle {
                 max_extra_jumps: 0,
                 extra_jumps: 0,
                 air_jumps: 0,
+                wall_jump_cd: [
+                    Timer::from_seconds(1.5, TimerMode::Once),
+                    Timer::from_seconds(1.5, TimerMode::Once),
+                ],
+                on_wall: [false; 2],
+                has_wall_jump: false,
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
@@ -122,7 +138,6 @@ impl Default for PlayerBundle {
                 coefficient: 0.,
                 combine_rule: CoefficientCombineRule::Min,
             },
-            spring_force: ExternalForce::default(),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             player_state: PlayerState::Idle,
             animation_timer: AnimationTimer(Timer::new(
@@ -133,12 +148,25 @@ impl Default for PlayerBundle {
     }
 }
 
-fn add_jump_collider(
-    mut commands: Commands,
-    query: Query<(Entity, &Transform), Added<PlayerMarker>>,
-) {
+fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Added<PlayerMarker>>) {
     if let Ok((entity, player_transform)) = query.get_single() {
+        commands.entity(entity).remove::<Collider>();
+        commands.entity(entity).remove::<Friction>();
+        commands.entity(entity).remove::<Restitution>();
         commands.entity(entity).with_children(|parent| {
+            parent.spawn((
+                Collider::round_cuboid(5., 3., 2.),
+                TransformBundle::from_transform(Transform::from_xyz(0., -2., 0.)),
+                Friction {
+                    coefficient: 0.,
+                    combine_rule: CoefficientCombineRule::Min,
+                },
+                Restitution {
+                    coefficient: 0.,
+                    combine_rule: CoefficientCombineRule::Min,
+                },
+                PlayerColliderMarker,
+            ));
             parent.spawn((
                 Collider::round_cuboid(3., 2., 2.),
                 Sensor,
@@ -146,6 +174,16 @@ fn add_jump_collider(
                 TransformBundle::from_transform(Transform::from_xyz(0., -4.2, 0.)),
                 PlayerJumpColliderMarker,
             ));
+            for i in 0..2 {
+                let dir = 2. * i as f32 - 1.;
+                parent.spawn((
+                    Collider::round_cuboid(2., 1., 2.),
+                    Sensor,
+                    ActiveEvents::COLLISION_EVENTS,
+                    TransformBundle::from_transform(Transform::from_xyz(dir * 4.1, -2., 0.)),
+                    PlayerWallColliderMarker { dir: i },
+                ));
+            }
         });
         commands.entity(entity).insert(PlayerCheckpoint {
             transform: player_transform.translation.xy(),
@@ -156,8 +194,12 @@ fn add_jump_collider(
 
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
+    mut query_player_wall_collider: Query<
+        (&mut PlayerWallColliderMarker, Entity),
+        With<PlayerWallColliderMarker>,
+    >,
     mut query_player: Query<
-        (&mut PlayerInventory, &mut PlayerState, &Velocity),
+        (Entity, &mut PlayerInventory, &mut PlayerState, &Velocity),
         With<PlayerMarker>,
     >,
     query_sensors: Query<
@@ -170,43 +212,59 @@ fn update_player_grounded(
     >,
     rapier_context: Res<RapierContext>,
 ) {
-    if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
-        if let Ok((mut player_inventory, mut player_state, velocity)) =
-            query_player.get_single_mut()
-        {
-            let mut grounded = false;
-            for (collider_1, collider_2, _) in
-                rapier_context.intersection_pairs_with(player_jump_controller_entity)
-            {
-                let other_entity = if collider_1 != player_jump_controller_entity {
-                    collider_1
-                } else {
-                    collider_2
-                };
-                if query_sensors.get(other_entity).is_err() {
-                    grounded = true;
-                    player_inventory.extra_jumps = player_inventory.max_extra_jumps;
-                }
-            }
-            if grounded && *player_state == PlayerState::Falling {
-                *player_state = PlayerState::FallingToIdle;
-            } else if !grounded
-                && velocity.linvel.y < 0.
-                && *player_state != PlayerState::FallingToIdle
-            {
-                *player_state = PlayerState::Falling;
+    let Ok(player_jump_collider_entity) = query_player_jump_collider.get_single() else {
+        return;
+    };
+
+    let Ok((player_entity, mut player_inventory, mut player_state, velocity)) =
+        query_player.get_single_mut()
+    else {
+        return;
+    };
+
+    // update if the player is touching the wall
+    for (wall_cooldown, wall_collider) in query_player_wall_collider.iter_mut() {
+        // check the collider to see if it is next to a wall
+        player_inventory.on_wall[wall_cooldown.dir] = false;
+        for (collider_1, collider_2, _) in rapier_context.intersection_pairs_with(wall_collider) {
+            let other_entity = if collider_1 != wall_collider {
+                collider_1
+            } else {
+                collider_2
+            };
+            if query_sensors.get(other_entity).is_err() && other_entity != player_entity {
+                player_inventory.on_wall[wall_cooldown.dir] = true;
             }
         }
+    }
+
+    let mut grounded = false;
+    for (collider_1, collider_2, _) in
+        rapier_context.intersection_pairs_with(player_jump_collider_entity)
+    {
+        let other_entity = if collider_1 != player_jump_collider_entity {
+            collider_1
+        } else {
+            collider_2
+        };
+        if query_sensors.get(other_entity).is_err() {
+            grounded = true;
+            player_inventory.extra_jumps = player_inventory.max_extra_jumps;
+        }
+    }
+
+    if grounded && *player_state == PlayerState::Falling {
+        println!("Resetting jump");
+        *player_state = PlayerState::FallingToIdle;
+    } else if !grounded && velocity.linvel.y < 0. && *player_state != PlayerState::FallingToIdle {
+        *player_state = PlayerState::Falling;
     }
 }
 
 fn move_player(
     mut query_player: Query<
         (
-            Entity,
             &mut Velocity,
-            &mut ExternalForce,
-            &Transform,
             &mut Sprite,
             &mut PlayerInventory,
             &mut PlayerStatus,
@@ -215,51 +273,29 @@ fn move_player(
         With<PlayerMarker>,
     >,
     keys: Res<ButtonInput<KeyCode>>,
-    rapier_context: Res<RapierContext>,
     time: Res<Time>,
 ) {
     if let Ok((
-        player_entity,
         mut player_velocity,
-        mut spring_force,
-        player_transform,
         mut sprite,
         mut player_inventory,
         mut player_status,
         mut player_state,
     )) = query_player.get_single_mut()
     {
-        // spring force added here so that the screen does not shake when the character walks over
-        // grid boundaries
-        const SPRING_CONSTANT: f32 = 15000.0;
-        let ray_pos = player_transform.translation.xy();
-        let ray_dir = -1. * Vec2::Y;
-        let max_toi = 10.;
-        let solid = true;
-        let filter = QueryFilter::default()
-            .exclude_sensors()
-            .exclude_collider(player_entity);
-        if rapier_context
-            .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
-            .is_some()
-            && *player_state != PlayerState::Jumping
-            && *player_state != PlayerState::Falling
-        {
-            let (_, toi) = rapier_context
-                .cast_ray(ray_pos, ray_dir, max_toi, solid, filter)
-                .unwrap();
-            let dist = ray_dir.length() * (max_toi - toi);
-            spring_force.force = dist * SPRING_CONSTANT * Vec2::Y
-                - SPRING_CONSTANT / 5. * player_velocity.linvel.y * Vec2::Y;
-        } else {
-            spring_force.force = Vec2::ZERO;
-        }
-
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
-            spring_force.force = Vec2::ZERO;
             // player_status.grounded = false;
             // *player_state = PlayerState::Jumping;
+        }
+        let mut on_wall = false;
+        for i in 0..2 {
+            if !player_inventory.wall_jump_cd[i].finished() {
+                player_inventory.wall_jump_cd[i].tick(time.delta());
+            }
+            if player_inventory.on_wall[i] {
+                on_wall = true;
+            }
         }
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
@@ -294,6 +330,20 @@ fn move_player(
             if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
                 // jump from floor
                 can_jump = true;
+            } else if player_inventory.has_wall_jump
+                && player_inventory.on_wall[0]
+                && player_inventory.wall_jump_cd[0].finished()
+            {
+                // wall jump from left wall
+                can_jump = true;
+                player_inventory.wall_jump_cd[0].reset();
+            } else if player_inventory.has_wall_jump
+                && player_inventory.on_wall[1]
+                && player_inventory.wall_jump_cd[1].finished()
+            {
+                // wall jump from right wall
+                can_jump = true;
+                player_inventory.wall_jump_cd[1].reset();
             } else if player_inventory.extra_jumps >= 1 {
                 // jump in air with double jump
                 can_jump = true;
@@ -306,11 +356,16 @@ fn move_player(
             // ugly but i wrote it like this so i can print debug messages
             if can_jump {
                 player_velocity.linvel.y = 130.;
-                spring_force.force = Vec2::ZERO;
                 *player_state = PlayerState::Jumping;
                 player_status.jump_cooldown.reset();
             }
         }
+
+        // allow player to slide down walls if they have wall jump
+        if on_wall && player_inventory.has_wall_jump && player_velocity.linvel.y < -45. {
+            player_velocity.linvel.y = -45.;
+        }
+
         player_velocity.linvel.x /= 1.6;
         if player_velocity.linvel.x.abs() < 0.1 {
             player_velocity.linvel.x = 0.;
@@ -382,20 +437,25 @@ fn set_player_checkpoint(
 }
 
 fn kill_player(
-    mut query_player: Query<(Entity, &mut PlayerStatus), With<PlayerMarker>>,
+    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+    query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     query_hazards: Query<Entity, With<KillPlayerMarker>>,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
-    let Ok((player_entity, mut player_status)) = query_player.get_single_mut() else {
+    let Ok(mut player_status) = query_player.get_single_mut() else {
         return;
     };
+    let Ok(player_collider) = query_player_collider.get_single() else {
+        return;
+    };
+
     let mut kill_player = false;
     if keys.just_pressed(KeyCode::KeyR) {
         kill_player = true;
     } else {
         for hazard in query_hazards.iter() {
-            if rapier_context.intersection_pair(player_entity, hazard) == Some(true) {
+            if rapier_context.intersection_pair(player_collider, hazard) == Some(true) {
                 kill_player = true;
             }
         }
