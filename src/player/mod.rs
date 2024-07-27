@@ -149,6 +149,7 @@ fn add_jump_collider(
         });
         commands.entity(entity).insert(PlayerCheckpoint {
             transform: player_transform.translation.xy(),
+            air_jumps: 0,
         });
     }
 }
@@ -189,7 +190,10 @@ fn update_player_grounded(
             }
             if grounded && *player_state == PlayerState::Falling {
                 *player_state = PlayerState::FallingToIdle;
-            } else if velocity.linvel.y < 0. && *player_state != PlayerState::FallingToIdle {
+            } else if !grounded
+                && velocity.linvel.y < 0.
+                && *player_state != PlayerState::FallingToIdle
+            {
                 *player_state = PlayerState::Falling;
             }
         }
@@ -352,20 +356,27 @@ pub fn loop_player(
 #[derive(Component, Debug)]
 pub struct PlayerCheckpoint {
     pub transform: Vec2,
+    pub air_jumps: usize,
 }
 
 #[derive(Event)]
 pub struct SetCheckpointEvent;
 
 fn set_player_checkpoint(
-    mut query_player: Query<(&mut PlayerCheckpoint, &Transform), With<PlayerMarker>>,
+    mut query_player: Query<
+        (&mut PlayerCheckpoint, &PlayerInventory, &Transform),
+        With<PlayerMarker>,
+    >,
     mut checkpoint_events: EventReader<SetCheckpointEvent>,
 ) {
-    let Ok((mut player_checkpoint, player_transform)) = query_player.get_single_mut() else {
+    let Ok((mut player_checkpoint, player_inventory, player_transform)) =
+        query_player.get_single_mut()
+    else {
         return;
     };
     for SetCheckpointEvent in checkpoint_events.read() {
         player_checkpoint.transform = player_transform.translation.xy();
+        player_checkpoint.air_jumps = player_inventory.air_jumps;
         println!("set player checkpoint to {}", player_checkpoint.transform)
     }
 }
