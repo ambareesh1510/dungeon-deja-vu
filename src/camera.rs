@@ -7,6 +7,7 @@ use bevy::{
     render::{camera::ScalingMode, view::RenderLayers},
 };
 use bevy_ecs_ldtk::prelude::*;
+use bevy_rapier2d::prelude::Velocity;
 
 use crate::state::LevelLoadingState;
 
@@ -110,7 +111,7 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
 fn dim_camera(
     mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
     mut query_player: Query<
-        (&mut PlayerStatus, &PlayerCheckpoint, &mut Transform),
+        (&mut PlayerStatus, &PlayerCheckpoint, &mut Transform, &mut Velocity),
         With<PlayerMarker>,
     >,
     mut query_player_camera: Query<
@@ -128,8 +129,9 @@ fn dim_camera(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
+    // mut virtual_time: ResMut<Time<Virtual>>
 ) {
-    let Ok((mut player_status, player_checkpoint, mut player_transform)) =
+    let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
         query_player.get_single_mut()
     else {
         return;
@@ -144,6 +146,9 @@ fn dim_camera(
     let mut alpha = color_as_linear.alpha();
     if player_status.level_finished || player_status.dead {
         alpha += time.delta().as_secs_f32() * 2.;
+        if player_status.dead {
+            *player_velocity = Velocity::zero();
+        }
         if alpha >= 1.5 {
             alpha = 1.5;
             if player_status.level_finished {
@@ -151,14 +156,13 @@ fn dim_camera(
                 next_state.set(LevelLoadingState::Loading);
             } else {
                 player_status.dead = false;
-                let new_translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
+                let new_translation = Vec3::new(player_checkpoint.transform.x, player_checkpoint.transform.y, 0.);
                 let delta = new_translation - player_transform.translation;
                 let camera_offset =
                     player_transform.translation.x - player_camera_transform.translation.x;
                 if camera_offset < 0. {
                     player_camera_transform.translation.x += camera_offset
                 };
-                // player_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
                 for mut camera_transform in query_cameras.iter_mut() {
@@ -167,8 +171,6 @@ fn dim_camera(
                         camera_transform.translation.x += camera_offset
                     };
                 }
-                //
-                // camera_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
             }
         }
     } else {
