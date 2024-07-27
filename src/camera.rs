@@ -76,7 +76,7 @@ struct DimCameraMarker;
 #[derive(Component)]
 struct DimMeshMarker;
 
-fn cleanup_cameras(query: Query<Entity, With<CameraMarker>>, mut commands: Commands) {
+fn cleanup_cameras(query: Query<Entity, Or<(With<CameraMarker>, With<PlayerCameraMarker>)>>, mut commands: Commands) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
