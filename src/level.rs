@@ -232,6 +232,9 @@ fn move_player(
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
+        if player_status.dead || player_status.level_finished {
+            return;
+        }
         if keys.pressed(KeyCode::ArrowRight) {
             player_velocity.linvel += VELOCITY;
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
@@ -439,7 +442,6 @@ fn kill_player(
     query_hazards: Query<Entity, With<KillPlayerMarker>>,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut time: ResMut<Time<Virtual>>,
 ) {
     let Ok((player_entity, mut player_status)) = query_player.get_single_mut() else {
         return;

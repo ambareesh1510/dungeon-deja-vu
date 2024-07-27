@@ -163,7 +163,6 @@ fn dim_camera(
                 if camera_offset < 0. {
                     player_camera_transform.translation.x += camera_offset
                 };
-                // player_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
                 for mut camera_transform in query_cameras.iter_mut() {
@@ -172,8 +171,6 @@ fn dim_camera(
                         camera_transform.translation.x += camera_offset
                     };
                 }
-                //
-                // camera_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
             }
         }
     } else {
