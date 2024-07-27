@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use crate::level::AnimationTimer;
 
-
 #[derive(Component)]
 pub struct ClockMarker;
 
@@ -31,7 +30,7 @@ impl Default for ClockBundle {
 
 pub fn animate_clock(
     time: Res<Time>,
-    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<ClockMarker>>
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<ClockMarker>>,
 ) {
     for (mut timer, mut atlas) in query.iter_mut() {
         timer.tick(time.delta());

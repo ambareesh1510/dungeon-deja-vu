@@ -13,8 +13,11 @@ impl Plugin for LevelManagementPlugin {
         app.add_plugins(LdtkPlugin)
             // .insert_resource(LevelSelection::index(0))
             .insert_resource(AnimationInfo::default())
+            .add_event::<SetCheckpointEvent>()
             .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_int_cell::<TerrainBundle>(1)
+            .register_ldtk_int_cell::<WaterBundle>(2)
+            .register_ldtk_int_cell::<SpikeBundle>(4)
             .add_systems(Startup, spawn_ldtk_world)
             .add_systems(OnEnter(LevelLoadingState::Loading), (load_level,))
             .add_systems(
@@ -36,6 +39,8 @@ impl Plugin for LevelManagementPlugin {
                     loop_player,
                     update_backwards_barrier,
                     animate_player,
+                    set_player_checkpoint,
+                    kill_player,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );
@@ -49,14 +54,11 @@ fn load_level(
     mut commands: Commands,
     target_level: Res<TargetLevel>,
     mut query_level_set: Query<&mut LevelSet>,
-    // mut next_state: ResMut<NextState<LevelLoadingState>>,
 ) {
     commands.spawn(InterLevelTimer(Timer::from_seconds(0.7, TimerMode::Once)));
     if let Ok(mut level_set) = query_level_set.get_single_mut() {
         *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
     }
-    println!("a");
-    // next_state.set(LevelLoadingState::Loaded);
 }
 
 fn inter_level_pause(
@@ -85,8 +87,8 @@ fn cleanup_level_objects(
     }
 }
 
-fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>>) {
-    if let Ok(entity) = query.get_single() {
+fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added<PlayerMarker>>) {
+    if let Ok((entity, player_transform)) = query.get_single() {
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Collider::round_cuboid(3., 2., 2.),
@@ -96,30 +98,44 @@ fn add_collider(mut commands: Commands, query: Query<Entity, Added<PlayerMarker>
                 PlayerJumpColliderMarker,
             ));
         });
+        commands
+            .entity(entity)
+            .insert(PlayerCheckpoint(player_transform.translation.xy()));
     }
 }
 
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
     mut query_player: Query<(&mut PlayerState, &Velocity), With<PlayerMarker>>,
+    query_sensors: Query<
+        Entity,
+        (
+            With<Sensor>,
+            Without<PlayerMarker>,
+            Without<PlayerJumpColliderMarker>,
+        ),
+    >,
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok((mut player_state, velocity)) = query_player.get_single_mut() {
-            if rapier_context
-                .intersection_pairs_with(player_jump_controller_entity)
-                .peekable()
-                .peek()
-                != None
+            let mut grounded = false;
+            for (collider_1, collider_2, _) in
+                rapier_context.intersection_pairs_with(player_jump_controller_entity)
             {
-                // if on the ground
-                if *player_state == PlayerState::Falling {
-                    *player_state = PlayerState::FallingToIdle;
+                let other_entity = if collider_1 != player_jump_controller_entity {
+                    collider_1
+                } else {
+                    collider_2
+                };
+                if query_sensors.get(other_entity).is_err() {
+                    grounded = true;
                 }
-            } else {
-                if velocity.linvel.y < 0. {
-                    *player_state = PlayerState::Falling;
-                }
+            }
+            if grounded && *player_state == PlayerState::Falling {
+                *player_state = PlayerState::FallingToIdle;
+            } else if velocity.linvel.y < 0. {
+                *player_state = PlayerState::Falling;
             }
         }
     }
@@ -244,7 +260,7 @@ fn move_player(
         {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
-                player_velocity.linvel = 130. * Vec2::Y;
+                player_velocity.linvel.y = 130.;
                 spring_force.force = Vec2::ZERO;
                 *player_state = PlayerState::Jumping;
                 player_status.jump_cooldown.reset();
@@ -391,7 +407,6 @@ pub fn loop_player(
                     if player_transform.translation.x < 0. {
                         player_transform.translation.x += width;
                         camera_transform.translation.x += width;
-                        // camera_transform.translation.x = player_transform.translation.x;
                         println!(
                             "looped camera transform is {}",
                             camera_transform.translation.x
@@ -400,10 +415,46 @@ pub fn loop_player(
                         player_transform.translation.x -= width;
                         camera_transform.translation.x -= width;
                     }
-                    // player_transform.translation.x = ((player_transform.translation.x % width) + width) % width;
                 }
             }
         }
+    }
+}
+
+fn set_player_checkpoint(
+    mut query_player_checkpoint: Query<&mut PlayerCheckpoint, With<PlayerMarker>>,
+    mut checkpoint_events: EventReader<SetCheckpointEvent>,
+) {
+    let Ok(mut player_checkpoint) = query_player_checkpoint.get_single_mut() else {
+        return;
+    };
+    for SetCheckpointEvent(coords) in checkpoint_events.read() {
+        player_checkpoint.0 = *coords;
+        println!("set player checkpoint to {}", player_checkpoint.0)
+    }
+}
+
+fn kill_player(
+    mut query_player: Query<(Entity, &mut PlayerStatus), With<PlayerMarker>>,
+    query_hazards: Query<Entity, With<KillPlayerMarker>>,
+    rapier_context: Res<RapierContext>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    let Ok((player_entity, mut player_status)) = query_player.get_single_mut() else {
+        return;
+    };
+    let mut kill_player = false;
+    if keys.just_pressed(KeyCode::KeyR) {
+        kill_player = true;
+    } else {
+        for hazard in query_hazards.iter() {
+            if rapier_context.intersection_pair(player_entity, hazard) == Some(true) {
+                kill_player = true;
+            }
+        }
+    }
+    if kill_player {
+        player_status.dead = true;
     }
 }
 
@@ -448,10 +499,12 @@ impl Default for AnimationInfo {
         }
     }
 }
+
 #[derive(Component)]
 pub struct PlayerStatus {
     jump_cooldown: Timer,
     pub level_finished: bool,
+    pub dead: bool,
     // air_jumps: usize,
     // max_air_jumps: usize,
 }
@@ -489,6 +542,12 @@ impl PlayerInventory {
     }
 }
 
+#[derive(Component, Debug)]
+pub struct PlayerCheckpoint(pub Vec2);
+
+#[derive(Event)]
+pub struct SetCheckpointEvent(pub Vec2);
+
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {
     #[sprite_sheet_bundle("../assets/spritesheets/slimespritesheet.png", 16, 16, 11, 2, 1, 0, 0)]
@@ -520,6 +579,7 @@ impl Default for PlayerBundle {
             player_status: PlayerStatus {
                 jump_cooldown: jump_cooldown_timer,
                 level_finished: false,
+                dead: false,
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
@@ -544,6 +604,53 @@ impl Default for PlayerBundle {
                 Duration::from_millis(100),
                 TimerMode::Repeating,
             )),
+        }
+    }
+}
+
+#[derive(Default, Component)]
+struct KillPlayerMarker;
+
+#[derive(Default, Component)]
+struct WaterMarker;
+
+#[derive(Bundle, LdtkIntCell)]
+struct WaterBundle {
+    water_marker: WaterMarker,
+    kill_player_marker: KillPlayerMarker,
+    collider: Collider,
+    sensor: Sensor,
+}
+
+impl Default for WaterBundle {
+    fn default() -> Self {
+        Self {
+            water_marker: WaterMarker,
+            kill_player_marker: KillPlayerMarker,
+            collider: Collider::cuboid(8., 6.),
+            sensor: Sensor,
+        }
+    }
+}
+
+#[derive(Default, Component)]
+struct SpikeMarker;
+
+#[derive(Bundle, LdtkIntCell)]
+struct SpikeBundle {
+    spike_marker: SpikeMarker,
+    kill_player_marker: KillPlayerMarker,
+    collider: Collider,
+    sensor: Sensor,
+}
+
+impl Default for SpikeBundle {
+    fn default() -> Self {
+        Self {
+            spike_marker: SpikeMarker,
+            kill_player_marker: KillPlayerMarker,
+            collider: Collider::cuboid(8., 8.),
+            sensor: Sensor,
         }
     }
 }
