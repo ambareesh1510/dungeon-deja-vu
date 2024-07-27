@@ -2729,7 +2729,7 @@
 			"fieldDefs": []
 		},
 		{
-			"identifier": "Powerup",
+			"identifier": "DoubleJump",
 			"uid": 311,
 			"tags": [],
 			"exportToToc": false,
@@ -3173,8 +3173,8 @@
 							"fieldInstances": []
 						},
 						{
-							"__identifier": "Powerup",
-							"__grid": [3,16],
+							"__identifier": "DoubleJump",
+							"__grid": [11,23],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 36, "x": 144, "y": 96, "w": 16, "h": 16 },
@@ -3183,7 +3183,7 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 311,
-							"px": [48,256],
+							"px": [176,368],
 							"fieldInstances": []
 						},
 						{
@@ -5667,7 +5667,7 @@
 							"fieldInstances": []
 						},
 						{
-							"__identifier": "Powerup",
+							"__identifier": "DoubleJump",
 							"__grid": [54,13],
 							"__pivot": [0,0],
 							"__tags": [],
