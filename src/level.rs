@@ -140,7 +140,7 @@ fn update_player_grounded(
             }
             if grounded && *player_state == PlayerState::Falling {
                 *player_state = PlayerState::FallingToIdle;
-            } else if velocity.linvel.y < 0. {
+            } else if velocity.linvel.y < 0. && *player_state != PlayerState::FallingToIdle {
                 *player_state = PlayerState::Falling;
             }
         }
@@ -205,6 +205,7 @@ fn move_player(
         mut player_state,
     )) = query_player.get_single_mut()
     {
+        println!("Player state: {:?}", player_state);
         // spring force added here so that the screen does not shake when the character walks over
         // grid boundaries
         const SPRING_CONSTANT: f32 = 15000.0;
