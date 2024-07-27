@@ -1,6 +1,7 @@
 mod camera;
 mod entities;
 mod level;
+mod player;
 mod state;
 
 use bevy::{
@@ -11,6 +12,7 @@ use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
 use entities::EntityManagementPlugin;
 use level::LevelManagementPlugin;
+use player::PlayerManagementPlugin;
 use state::StateManagementPlugin;
 
 fn main() {
@@ -30,6 +32,7 @@ fn main() {
             LevelManagementPlugin,
             StateManagementPlugin,
             EntityManagementPlugin,
+            PlayerManagementPlugin,
         ))
         .run();
 }

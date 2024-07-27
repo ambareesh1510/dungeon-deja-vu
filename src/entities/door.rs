@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::level::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct DoorMarker;
@@ -71,8 +71,7 @@ pub fn check_door_interacting(
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut()
-    else {
+    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
         return;
     };
     if !keys.just_pressed(KeyCode::KeyQ) {
@@ -83,11 +82,11 @@ pub fn check_door_interacting(
         let (door_entity, door_state) = &mut query_door_state.get_mut(door.get()).unwrap();
         let atlas = &mut query_door_texture.get_mut(door.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
-            if inventory.has_key() {
+            if inventory.num_keys >= 1 {
                 println!("UNLOCKING DOOR");
                 door_state.unlocked = true;
                 commands.entity(*door_entity).despawn_descendants();
-                inventory.use_key();
+                inventory.num_keys -= 1;
                 atlas.index = 1;
                 checkpoint_event_writer.send(SetCheckpointEvent);
             } else {
