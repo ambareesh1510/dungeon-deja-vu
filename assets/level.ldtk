@@ -3174,7 +3174,7 @@
 						},
 						{
 							"__identifier": "DoubleJump",
-							"__grid": [11,23],
+							"__grid": [3,16],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 36, "x": 144, "y": 96, "w": 16, "h": 16 },
@@ -3183,7 +3183,7 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 311,
-							"px": [176,368],
+							"px": [48,256],
 							"fieldInstances": []
 						},
 						{
