@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::level::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct DoubleJumpMarker;
@@ -51,8 +51,7 @@ pub fn check_double_jump_acquire(
     mut q_double_jump: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut()
-    else {
+    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
         return;
     };
 

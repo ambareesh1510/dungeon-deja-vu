@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::level::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -48,8 +48,7 @@ pub fn check_key_interacting(
     mut query_key_entity: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut()
-    else {
+    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
         return;
     };
 
@@ -57,7 +56,7 @@ pub fn check_key_interacting(
         let key_entity = &mut query_key_entity.get_mut(key.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, key_sensor_entity) == Some(true) {
             println!("GOT KEY");
-            inventory.add_key();
+            inventory.num_keys += 1;
             commands.entity(*key_entity).despawn_recursive();
             checkpoint_event_writer.send(SetCheckpointEvent);
         }
