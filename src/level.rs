@@ -105,24 +105,23 @@ fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
     mut query_player: Query<(&mut PlayerState, &Velocity), With<PlayerMarker>>,
+    query_sensors: Query<Entity, (With<Sensor>, Without<PlayerMarker>, Without<PlayerJumpColliderMarker>)>,
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok((mut player_state, velocity)) = query_player.get_single_mut() {
-            if rapier_context
-                .intersection_pairs_with(player_jump_controller_entity)
-                .peekable()
-                .peek()
-                != None
-            {
-                // if on the ground
-                if *player_state == PlayerState::Falling {
-                    *player_state = PlayerState::FallingToIdle;
+            let mut grounded = false;
+            for (collider_1, collider_2, _) in rapier_context.intersection_pairs_with(player_jump_controller_entity) {
+                let other_entity = if collider_1 != player_jump_controller_entity { collider_1 } else { collider_2};
+                if query_sensors.get(other_entity).is_err() {
+                    grounded = true;
                 }
-            } else {
-                if velocity.linvel.y < 0. {
-                    *player_state = PlayerState::Falling;
-                }
+            }
+            if grounded && *player_state == PlayerState::Falling {
+                *player_state = PlayerState::FallingToIdle;
+            }
+            else if velocity.linvel.y < 0. {
+                *player_state = PlayerState::Falling;
             }
         }
     }
@@ -247,7 +246,7 @@ fn move_player(
         {
             // ugly but i wrote it like this so i can print debug messages
             if player_status.jump_cooldown.finished() {
-                player_velocity.linvel = 130. * Vec2::Y;
+                player_velocity.linvel.y = 130.;
                 spring_force.force = Vec2::ZERO;
                 *player_state = PlayerState::Jumping;
                 player_status.jump_cooldown.reset();

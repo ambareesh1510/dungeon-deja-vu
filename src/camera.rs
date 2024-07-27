@@ -112,7 +112,8 @@ fn setup_camera(
 fn dim_camera(
     mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
     mut query_player: Query<(&mut PlayerStatus, &PlayerCheckpoint, &mut Transform), With<PlayerMarker>>,
-    mut query_cameras: Query<&mut Transform, (With<CameraMarker>, Without<PlayerMarker>)>,
+    mut query_player_camera: Query<&mut Transform, (With<PlayerCameraMarker>, Without<PlayerMarker>)>,
+    mut query_cameras: Query<&mut Transform, (With<MainCameraMarker>, Without<PlayerMarker>, Without<PlayerCameraMarker>)>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
@@ -121,6 +122,9 @@ fn dim_camera(
         return;
     };
     let Ok(mut dim_sprite) = query_dim_sprite.get_single_mut() else {
+        return;
+    };
+    let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
         return;
     };
     let color_as_linear = dim_sprite.color.to_linear();
@@ -136,10 +140,18 @@ fn dim_camera(
                 player_status.dead = false;
                 let new_translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
                 let delta = new_translation - player_transform.translation;
+                let camera_offset = player_transform.translation.x - player_camera_transform.translation.x;
+                if camera_offset < 0. {
+                    player_camera_transform.translation.x += camera_offset
+                };
                 // player_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
                 player_transform.translation += delta;
+                player_camera_transform.translation += delta;
                 for mut camera_transform in query_cameras.iter_mut() {
                     camera_transform.translation += delta;
+                    if camera_offset < 0. {
+                        camera_transform.translation.x += camera_offset
+                    };
                 }
                 //
                 // camera_transform.translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
@@ -200,9 +212,7 @@ fn loop_main_cameras(
             level_width = level.c_wid as f32 * 16.;
         }
     }
-    println!("printing camera translations");
     for mut camera_transform in query_main_cameras.iter_mut() {
-        println!("camera transform is {}", camera_transform.translation.x);
         if camera_transform.translation.x > 3. * level_width / 2. {
             camera_transform.translation.x -= 2. * level_width;
         }
@@ -234,16 +244,12 @@ fn autoscroll_camera(
             }
         }
 
-        // println!("camera positions:");
-        // for mut camera_transform in query_cameras.iter_mut() {
         if let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() {
-            // println!("{}", player_camera_transform.translation.x);
             let new_transform = player_camera_transform.translation.x/*  % level_width */;
             let new_player_transform =
                 ((player_transform.translation.x % level_width) + level_width) % level_width;
             let delta = new_player_transform - new_transform;
             if delta <= 0. {
-                // println!("^ ignored");
                 return;
             }
             // NOTE: if the delta is greater than 0, that means the player's world transform is
@@ -251,7 +257,6 @@ fn autoscroll_camera(
             // only scroll if the player is past the halfway point
             let modded_delta = ((delta % level_width) + level_width) % level_width;
 
-            // println!("modded delta is {modded_delta}");
             player_camera_transform.translation.x += modded_delta;
             for mut camera_transform in query_main_cameras.iter_mut() {
                 camera_transform.translation.x += modded_delta;
