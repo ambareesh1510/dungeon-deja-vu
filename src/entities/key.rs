@@ -44,11 +44,11 @@ pub fn check_key_interacting(
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
     mut query_keys: Query<(&mut Parent, Entity), With<KeySensorMarker>>,
-    mut query_player: Query<(&mut PlayerInventory, &Transform, Entity), With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
     mut query_key_entity: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut()
+    let Ok((mut inventory, player_collider)) = query_player.get_single_mut()
     else {
         return;
     };
@@ -59,7 +59,7 @@ pub fn check_key_interacting(
             println!("GOT KEY");
             inventory.add_key();
             commands.entity(*key_entity).despawn_recursive();
-            checkpoint_event_writer.send(SetCheckpointEvent(player_transform.translation.xy()));
+            checkpoint_event_writer.send(SetCheckpointEvent);
         }
     }
 }

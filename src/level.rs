@@ -100,7 +100,7 @@ fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added
         });
         commands
             .entity(entity)
-            .insert(PlayerCheckpoint(player_transform.translation.xy()));
+            .insert(PlayerCheckpoint { transform: player_transform.translation.xy() });
     }
 }
 
@@ -422,15 +422,15 @@ pub fn loop_player(
 }
 
 fn set_player_checkpoint(
-    mut query_player_checkpoint: Query<&mut PlayerCheckpoint, With<PlayerMarker>>,
+    mut query_player: Query<(&mut PlayerCheckpoint, &Transform), With<PlayerMarker>>,
     mut checkpoint_events: EventReader<SetCheckpointEvent>,
 ) {
-    let Ok(mut player_checkpoint) = query_player_checkpoint.get_single_mut() else {
+    let Ok((mut player_checkpoint, player_transform)) = query_player.get_single_mut() else {
         return;
     };
-    for SetCheckpointEvent(coords) in checkpoint_events.read() {
-        player_checkpoint.0 = *coords;
-        println!("set player checkpoint to {}", player_checkpoint.0)
+    for SetCheckpointEvent in checkpoint_events.read() {
+        player_checkpoint.transform = player_transform.translation.xy();
+        println!("set player checkpoint to {}", player_checkpoint.transform)
     }
 }
 
@@ -543,10 +543,12 @@ impl PlayerInventory {
 }
 
 #[derive(Component, Debug)]
-pub struct PlayerCheckpoint(pub Vec2);
+pub struct PlayerCheckpoint {
+    pub transform: Vec2,
+}
 
 #[derive(Event)]
-pub struct SetCheckpointEvent(pub Vec2);
+pub struct SetCheckpointEvent;
 
 #[derive(Bundle, LdtkEntity)]
 struct PlayerBundle {

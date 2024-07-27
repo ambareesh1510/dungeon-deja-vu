@@ -151,7 +151,7 @@ fn dim_camera(
                 next_state.set(LevelLoadingState::Loading);
             } else {
                 player_status.dead = false;
-                let new_translation = Vec3::new(player_checkpoint.0.x, player_checkpoint.0.y, 0.);
+                let new_translation = Vec3::new(player_checkpoint.transform.x, player_checkpoint.transform.y, 0.);
                 let delta = new_translation - player_transform.translation;
                 let camera_offset =
                     player_transform.translation.x - player_camera_transform.translation.x;
