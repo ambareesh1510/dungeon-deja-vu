@@ -98,29 +98,43 @@ fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added
                 PlayerJumpColliderMarker,
             ));
         });
-        commands.entity(entity).insert(PlayerCheckpoint(player_transform.translation.xy()));
+        commands
+            .entity(entity)
+            .insert(PlayerCheckpoint(player_transform.translation.xy()));
     }
 }
 
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
     mut query_player: Query<(&mut PlayerState, &Velocity), With<PlayerMarker>>,
-    query_sensors: Query<Entity, (With<Sensor>, Without<PlayerMarker>, Without<PlayerJumpColliderMarker>)>,
+    query_sensors: Query<
+        Entity,
+        (
+            With<Sensor>,
+            Without<PlayerMarker>,
+            Without<PlayerJumpColliderMarker>,
+        ),
+    >,
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
         if let Ok((mut player_state, velocity)) = query_player.get_single_mut() {
             let mut grounded = false;
-            for (collider_1, collider_2, _) in rapier_context.intersection_pairs_with(player_jump_controller_entity) {
-                let other_entity = if collider_1 != player_jump_controller_entity { collider_1 } else { collider_2};
+            for (collider_1, collider_2, _) in
+                rapier_context.intersection_pairs_with(player_jump_controller_entity)
+            {
+                let other_entity = if collider_1 != player_jump_controller_entity {
+                    collider_1
+                } else {
+                    collider_2
+                };
                 if query_sensors.get(other_entity).is_err() {
                     grounded = true;
                 }
             }
             if grounded && *player_state == PlayerState::Falling {
                 *player_state = PlayerState::FallingToIdle;
-            }
-            else if velocity.linvel.y < 0. {
+            } else if velocity.linvel.y < 0. {
                 *player_state = PlayerState::Falling;
             }
         }
@@ -409,7 +423,7 @@ pub fn loop_player(
 
 fn set_player_checkpoint(
     mut query_player_checkpoint: Query<&mut PlayerCheckpoint, With<PlayerMarker>>,
-    mut checkpoint_events: EventReader<SetCheckpointEvent>
+    mut checkpoint_events: EventReader<SetCheckpointEvent>,
 ) {
     let Ok(mut player_checkpoint) = query_player_checkpoint.get_single_mut() else {
         return;

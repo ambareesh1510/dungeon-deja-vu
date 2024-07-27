@@ -2,9 +2,9 @@ use crate::state::LevelLoadingState;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 
+mod clock;
 mod door;
 mod key;
-mod clock;
 
 use clock::animate_clock;
 use door::{add_door_interaction, check_door_interacting, DoorBundle};
@@ -24,7 +24,7 @@ impl Plugin for EntityManagementPlugin {
                     check_door_interacting,
                     add_key_sensor,
                     check_key_interacting,
-                    animate_clock
+                    animate_clock,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );

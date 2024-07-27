@@ -71,7 +71,8 @@ pub fn check_door_interacting(
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut() else {
+    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut()
+    else {
         return;
     };
     if !keys.just_pressed(KeyCode::KeyQ) {

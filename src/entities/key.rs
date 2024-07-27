@@ -48,7 +48,8 @@ pub fn check_key_interacting(
     mut query_key_entity: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut() else {
+    let Ok((mut inventory, player_transform, player_collider)) = query_player.get_single_mut()
+    else {
         return;
     };
 
