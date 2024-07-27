@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerMarker, PlayerStatus};
+use crate::player::{PlayerColliderMarker, PlayerMarker, PlayerStatus};
 
 #[derive(Component, Debug)]
 pub struct GoalMarker;
@@ -43,9 +43,13 @@ pub fn add_goal_sensor(mut commands: Commands, query_goals: Query<Entity, Added<
 pub fn check_goal_reached(
     rapier_context: Res<RapierContext>,
     query_goal_sensor: Query<Entity, With<GoalSensorMarker>>,
-    mut query_player: Query<(&mut PlayerStatus, Entity), With<PlayerMarker>>,
+    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+    query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
 ) {
-    let Ok((mut player_status, player_collider)) = query_player.get_single_mut() else {
+    let Ok(mut player_status) = query_player.get_single_mut() else {
+        return;
+    };
+    let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
     let Ok(goal_sensor) = query_goal_sensor.get_single() else {

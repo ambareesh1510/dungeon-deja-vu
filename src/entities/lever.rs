@@ -4,7 +4,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::{
     entities::platform::add_platform_colliders,
-    player::{PlayerMarker, SetCheckpointEvent},
+    player::{PlayerColliderMarker, SetCheckpointEvent},
 };
 
 use super::platform::{PlatformInfo, PlatformMarker};
@@ -71,13 +71,13 @@ pub fn check_lever_interacting(
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
     mut query_lever_sensor: Query<(&mut Parent, Entity), With<LeverSensorMarker>>,
-    query_player: Query<Entity, With<PlayerMarker>>,
+    query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_lever: Query<&mut LeverState>,
     query_platforms: Query<(&PlatformInfo, Entity), With<PlatformMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok(player_collider) = query_player.get_single() else {
+    let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
     if !keys.just_pressed(KeyCode::KeyQ) {

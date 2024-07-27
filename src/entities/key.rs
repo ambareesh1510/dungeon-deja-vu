@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -44,11 +44,15 @@ pub fn check_key_interacting(
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
     mut query_keys: Query<(&mut Parent, Entity), With<KeySensorMarker>>,
-    mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
+    mut query_player: Query<&mut PlayerInventory, With<PlayerMarker>>,
+    query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_key_entity: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
+    let Ok(mut inventory) = query_player.get_single_mut() else {
+        return;
+    };
+    let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
 

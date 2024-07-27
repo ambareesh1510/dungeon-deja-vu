@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerInventory, PlayerMarker};
+use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker};
 
 #[derive(Component, Debug)]
 pub struct JumpTokenMarker;
@@ -57,11 +57,15 @@ pub fn add_jump_token_sensor(
 pub fn check_jump_token_acquire(
     rapier_context: Res<RapierContext>,
     mut query_token_sensor: Query<(&mut Parent, Entity), With<JumpTokenSensorMarker>>,
-    mut query_player: Query<(&mut PlayerInventory, Entity), With<PlayerMarker>>,
+    mut query_player: Query<&mut PlayerInventory, With<PlayerMarker>>,
+    query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_token: Query<(&mut Visibility, &mut JumpTokenStatus)>,
     time: Res<Time>,
 ) {
-    let Ok((mut inventory, player_collider)) = query_player.get_single_mut() else {
+    let Ok(mut inventory) = query_player.get_single_mut() else {
+        return;
+    };
+    let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
 
