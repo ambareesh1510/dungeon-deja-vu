@@ -1,5 +1,5 @@
 use crate::{
-    player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
+    player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
 use bevy::{
@@ -114,6 +114,7 @@ fn dim_camera(
         (
             &mut PlayerStatus,
             &PlayerCheckpoint,
+            &mut PlayerInventory,
             &mut Transform,
             &mut Velocity,
         ),
@@ -136,8 +137,13 @@ fn dim_camera(
     time: Res<Time>,
     // mut virtual_time: ResMut<Time<Virtual>>
 ) {
-    let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
-        query_player.get_single_mut()
+    let Ok((
+        mut player_status,
+        player_checkpoint,
+        mut player_inventory,
+        mut player_transform,
+        mut player_velocity,
+    )) = query_player.get_single_mut()
     else {
         return;
     };
@@ -161,6 +167,7 @@ fn dim_camera(
                 next_state.set(LevelLoadingState::Loading);
             } else {
                 player_status.dead = false;
+                player_inventory.air_jumps = player_checkpoint.air_jumps;
                 let new_translation = Vec3::new(
                     player_checkpoint.transform.x,
                     player_checkpoint.transform.y,
