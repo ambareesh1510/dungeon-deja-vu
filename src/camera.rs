@@ -17,11 +17,7 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(
-                Startup,
-                (setup_dim_mesh, spawn_background),
-            )
+        app.add_systems(Startup, (setup_dim_mesh, spawn_background))
             .insert_resource(LdtkSettings {
                 level_background: LevelBackground::Nonexistent,
                 ..default()
@@ -55,8 +51,8 @@ pub const MIDGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(3);
 struct ParallaxCoefficient(f32);
 
 const FOREGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(1.);
-const MIDGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.85);
-const BACKGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.7);
+const MIDGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.35);
+const BACKGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.25);
 
 #[derive(Component)]
 pub struct CameraMarker;
@@ -109,21 +105,32 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     let midground_sprite_size = 128.;
     for x in -10..10 {
         for y in -10..10 {
-            commands.spawn(SpriteBundle {
-                transform: Transform::from_xyz(background_sprite_size * x as f32, background_sprite_size * y as f32, 0.),
-                texture: background_sprite_handle.clone(),
-                ..default()
-            }).insert(BACKGROUND_RENDER_LAYER);
+            commands
+                .spawn(SpriteBundle {
+                    transform: Transform::from_xyz(
+                        background_sprite_size * x as f32,
+                        background_sprite_size * y as f32,
+                        0.,
+                    ),
+                    texture: background_sprite_handle.clone(),
+                    ..default()
+                })
+                .insert(BACKGROUND_RENDER_LAYER);
         }
     }
     for x in 0..10 {
-        commands.spawn(SpriteBundle {
-            transform: Transform::from_xyz(midground_sprite_size * x as f32, 0., 0.),
-            texture: if x % 4 == 2 { pillar_broken.clone() } else { pillar_intact.clone() },
-            ..default()
-        }).insert(MIDGROUND_RENDER_LAYER);
+        commands
+            .spawn(SpriteBundle {
+                transform: Transform::from_xyz(midground_sprite_size * x as f32, 0., 0.),
+                texture: if x % 4 == 2 {
+                    pillar_broken.clone()
+                } else {
+                    pillar_intact.clone()
+                },
+                ..default()
+            })
+            .insert(MIDGROUND_RENDER_LAYER);
     }
-
 }
 
 fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
@@ -144,35 +151,69 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
 
             let mut main_camera = Camera2dBundle::default();
             main_camera.projection.scaling_mode = scaling_mode;
-            commands.spawn((main_camera, MainCameraMarker, CameraMarker, FOREGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                main_camera,
+                MainCameraMarker,
+                CameraMarker,
+                FOREGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             let mut main_camera_2 = Camera2dBundle::default();
             main_camera_2.projection.scaling_mode = scaling_mode;
             main_camera_2.transform.translation.x = level_width;
             main_camera_2.camera.order = -1;
-            commands.spawn((main_camera_2, MainCameraMarker, CameraMarker, FOREGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                main_camera_2,
+                MainCameraMarker,
+                CameraMarker,
+                FOREGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             let mut midground_camera = Camera2dBundle::default();
             midground_camera.projection.scaling_mode = scaling_mode;
             midground_camera.camera.order = -2;
-            commands.spawn((midground_camera, BackgroundCameraMarker, CameraMarker, MIDGROUND_RENDER_LAYER, MIDGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                midground_camera,
+                BackgroundCameraMarker,
+                CameraMarker,
+                MIDGROUND_RENDER_LAYER,
+                MIDGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             let mut midground_camera_2 = Camera2dBundle::default();
             midground_camera_2.projection.scaling_mode = scaling_mode;
             midground_camera_2.transform.translation.x = level_width;
             midground_camera_2.camera.order = -3;
-            commands.spawn((midground_camera_2, BackgroundCameraMarker, CameraMarker, MIDGROUND_RENDER_LAYER, MIDGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                midground_camera_2,
+                BackgroundCameraMarker,
+                CameraMarker,
+                MIDGROUND_RENDER_LAYER,
+                MIDGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             let mut background_camera = Camera2dBundle::default();
             background_camera.projection.scaling_mode = scaling_mode;
             background_camera.camera.order = -4;
-            commands.spawn((background_camera, BackgroundCameraMarker, CameraMarker, BACKGROUND_RENDER_LAYER, BACKGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                background_camera,
+                BackgroundCameraMarker,
+                CameraMarker,
+                BACKGROUND_RENDER_LAYER,
+                BACKGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             let mut background_camera_2 = Camera2dBundle::default();
             background_camera_2.projection.scaling_mode = scaling_mode;
             background_camera_2.transform.translation.x = level_width;
             background_camera_2.camera.order = -5;
-            commands.spawn((background_camera_2, BackgroundCameraMarker, CameraMarker, BACKGROUND_RENDER_LAYER, BACKGROUND_PARALLAX_COEFFICIENT));
+            commands.spawn((
+                background_camera_2,
+                BackgroundCameraMarker,
+                CameraMarker,
+                BACKGROUND_RENDER_LAYER,
+                BACKGROUND_PARALLAX_COEFFICIENT,
+            ));
 
             return;
         }
@@ -318,7 +359,10 @@ fn loop_main_cameras(
 }
 
 fn autoscroll_camera(
-    mut query_main_cameras: Query<(&mut Transform, Option<&ParallaxCoefficient>), With<CameraMarker>>,
+    mut query_main_cameras: Query<
+        (&mut Transform, Option<&ParallaxCoefficient>),
+        With<CameraMarker>,
+    >,
     mut query_player_camera: Query<
         &mut Transform,
         (With<PlayerCameraMarker>, Without<CameraMarker>),
@@ -357,7 +401,12 @@ fn autoscroll_camera(
 
             player_camera_transform.translation.x += modded_delta;
             for (mut camera_transform, parallax_coefficient) in query_main_cameras.iter_mut() {
-                camera_transform.translation.x += modded_delta * if let Some(c) = parallax_coefficient { c.0 } else { 0. };
+                camera_transform.translation.x += modded_delta
+                    * if let Some(c) = parallax_coefficient {
+                        c.0
+                    } else {
+                        0.
+                    };
             }
         }
     }
