@@ -106,7 +106,10 @@ fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added
 
 fn update_player_grounded(
     query_player_jump_collider: Query<Entity, With<PlayerJumpColliderMarker>>,
-    mut query_player: Query<(&mut PlayerState, &Velocity), With<PlayerMarker>>,
+    mut query_player: Query<
+        (&mut PlayerInventory, &mut PlayerState, &Velocity),
+        With<PlayerMarker>,
+    >,
     query_sensors: Query<
         Entity,
         (
@@ -118,7 +121,9 @@ fn update_player_grounded(
     rapier_context: Res<RapierContext>,
 ) {
     if let Ok(player_jump_controller_entity) = query_player_jump_collider.get_single() {
-        if let Ok((mut player_state, velocity)) = query_player.get_single_mut() {
+        if let Ok((mut player_inventory, mut player_state, velocity)) =
+            query_player.get_single_mut()
+        {
             let mut grounded = false;
             for (collider_1, collider_2, _) in
                 rapier_context.intersection_pairs_with(player_jump_controller_entity)
@@ -130,6 +135,7 @@ fn update_player_grounded(
                 };
                 if query_sensors.get(other_entity).is_err() {
                     grounded = true;
+                    player_inventory.extra_jumps = player_inventory.max_extra_jumps;
                 }
             }
             if grounded && *player_state == PlayerState::Falling {
@@ -178,6 +184,7 @@ fn move_player(
             &mut ExternalForce,
             &Transform,
             &mut Sprite,
+            &mut PlayerInventory,
             &mut PlayerStatus,
             &mut PlayerState,
         ),
@@ -193,6 +200,7 @@ fn move_player(
         mut spring_force,
         player_transform,
         mut sprite,
+        mut player_inventory,
         mut player_status,
         mut player_state,
     )) = query_player.get_single_mut()
@@ -257,12 +265,22 @@ fn move_player(
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if keys.pressed(KeyCode::ArrowUp)
-            && *player_state != PlayerState::Jumping
-            && *player_state != PlayerState::Falling
-        {
+        if keys.pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
+            let mut can_jump = false;
+            if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
+                // jump from floor
+                can_jump = true;
+            } else if player_inventory.extra_jumps >= 1 {
+                // jump in air with double jump
+                can_jump = true;
+                player_inventory.extra_jumps -= 1;
+            } else if player_inventory.air_jumps >= 1 {
+                // jump in air with jump token
+                can_jump = true;
+                player_inventory.air_jumps -= 1;
+            }
             // ugly but i wrote it like this so i can print debug messages
-            if player_status.jump_cooldown.finished() {
+            if can_jump {
                 player_velocity.linvel.y = 130.;
                 spring_force.force = Vec2::ZERO;
                 *player_state = PlayerState::Jumping;
@@ -529,7 +547,10 @@ pub struct AnimationTimer(pub Timer);
 
 #[derive(Component, Debug)]
 pub struct PlayerInventory {
-    num_keys: usize,
+    pub num_keys: usize,
+    pub max_extra_jumps: usize,
+    pub extra_jumps: usize,
+    pub air_jumps: usize,
 }
 
 impl PlayerInventory {
@@ -589,7 +610,12 @@ impl Default for PlayerBundle {
                 // air_jumps: 1,
                 // max_air_jumps: 1,
             },
-            player_inventory: PlayerInventory { num_keys: 0 },
+            player_inventory: PlayerInventory {
+                num_keys: 0,
+                max_extra_jumps: 0,
+                extra_jumps: 0,
+                air_jumps: 0,
+            },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
             collider: Collider::round_cuboid(5., 3., 2.),

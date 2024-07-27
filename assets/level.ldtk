@@ -2729,7 +2729,7 @@
 			"fieldDefs": []
 		},
 		{
-			"identifier": "Powerup",
+			"identifier": "DoubleJump",
 			"uid": 311,
 			"tags": [],
 			"exportToToc": false,
@@ -3173,7 +3173,7 @@
 							"fieldInstances": []
 						},
 						{
-							"__identifier": "Powerup",
+							"__identifier": "DoubleJump",
 							"__grid": [3,16],
 							"__pivot": [0,0],
 							"__tags": [],
@@ -5667,7 +5667,7 @@
 							"fieldInstances": []
 						},
 						{
-							"__identifier": "Powerup",
+							"__identifier": "DoubleJump",
 							"__grid": [54,13],
 							"__pivot": [0,0],
 							"__tags": [],
