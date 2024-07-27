@@ -98,9 +98,9 @@ fn add_collider(mut commands: Commands, query: Query<(Entity, &Transform), Added
                 PlayerJumpColliderMarker,
             ));
         });
-        commands
-            .entity(entity)
-            .insert(PlayerCheckpoint { transform: player_transform.translation.xy() });
+        commands.entity(entity).insert(PlayerCheckpoint {
+            transform: player_transform.translation.xy(),
+        });
     }
 }
 
@@ -205,7 +205,6 @@ fn move_player(
         mut player_state,
     )) = query_player.get_single_mut()
     {
-        println!("Player state: {:?}", player_state);
         // spring force added here so that the screen does not shake when the character walks over
         // grid boundaries
         const SPRING_CONSTANT: f32 = 15000.0;
