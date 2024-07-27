@@ -71,13 +71,13 @@ pub fn check_jump_token_acquire(
             && token_status.active
         {
             inventory.air_jumps += 1;
-            println!("ADDED JUMP");
+            // println!("ADDED JUMP");
             token_status.active = false;
             *token_visibility = Visibility::Hidden;
         } else if !token_status.active {
             token_status.timer.tick(time.delta());
             if token_status.timer.just_finished() {
-                println!("TOKEN RESETTING");
+                // println!("TOKEN RESETTING");
                 token_status.timer.reset();
                 token_status.active = true;
                 *token_visibility = Visibility::Inherited;
