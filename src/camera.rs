@@ -7,6 +7,7 @@ use bevy::{
     render::{camera::ScalingMode, view::RenderLayers},
 };
 use bevy_ecs_ldtk::prelude::*;
+use bevy_rapier2d::prelude::Velocity;
 
 use crate::state::LevelLoadingState;
 
@@ -110,7 +111,7 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
 fn dim_camera(
     mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
     mut query_player: Query<
-        (&mut PlayerStatus, &PlayerCheckpoint, &mut Transform),
+        (&mut PlayerStatus, &PlayerCheckpoint, &mut Transform, &mut Velocity),
         With<PlayerMarker>,
     >,
     mut query_player_camera: Query<
@@ -128,8 +129,9 @@ fn dim_camera(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
+    // mut virtual_time: ResMut<Time<Virtual>>
 ) {
-    let Ok((mut player_status, player_checkpoint, mut player_transform)) =
+    let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
         query_player.get_single_mut()
     else {
         return;
@@ -144,6 +146,9 @@ fn dim_camera(
     let mut alpha = color_as_linear.alpha();
     if player_status.level_finished || player_status.dead {
         alpha += time.delta().as_secs_f32() * 2.;
+        if player_status.dead {
+            *player_velocity = Velocity::zero();
+        }
         if alpha >= 1.5 {
             alpha = 1.5;
             if player_status.level_finished {

@@ -439,6 +439,7 @@ fn kill_player(
     query_hazards: Query<Entity, With<KillPlayerMarker>>,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut time: ResMut<Time<Virtual>>,
 ) {
     let Ok((player_entity, mut player_status)) = query_player.get_single_mut() else {
         return;
@@ -455,6 +456,7 @@ fn kill_player(
     }
     if kill_player {
         player_status.dead = true;
+        // time.pause();
     }
 }
 
