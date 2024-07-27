@@ -150,7 +150,7 @@ impl Default for SpikeBundle {
         Self {
             spike_marker: SpikeMarker,
             kill_player_marker: KillPlayerMarker,
-            collider: Collider::cuboid(8., 5.),
+            collider: Collider::cuboid(8., 4.),
             sensor: Sensor,
         }
     }
