@@ -45,11 +45,14 @@ fn door_initial_status(ei: &EntityInstance) -> PlatformInfo {
 
 pub fn insert_platform_colliders(
     mut commands: Commands,
-    query_doors: Query<(&PlatformInfo, Entity), Added<PlatformMarker>>,
+    mut query_doors: Query<(&PlatformInfo, &mut TextureAtlas, Entity), Added<PlatformMarker>>,
 ) {
-    for (platform_info, platform) in query_doors.iter() {
+    for (platform_info, mut atlas, platform) in query_doors.iter_mut() {
         if platform_info.active {
-            add_platform_colliders(&mut commands, platform)
+            add_platform_colliders(&mut commands, platform);
+            atlas.index = 6;
+        } else {
+            atlas.index = 7;
         }
     }
 }
