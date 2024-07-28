@@ -1,5 +1,6 @@
 use crate::{
-    player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus},
+    entities::jump_token::{JumpTokenMarker, JumpTokenStatus},
+    player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
 use bevy::{
@@ -72,7 +73,10 @@ struct DimCameraMarker;
 #[derive(Component)]
 struct DimMeshMarker;
 
-fn cleanup_cameras(query: Query<Entity, Or<(With<CameraMarker>, With<PlayerCameraMarker>)>>, mut commands: Commands) {
+fn cleanup_cameras(
+    query: Query<Entity, Or<(With<CameraMarker>, With<PlayerCameraMarker>)>>,
+    mut commands: Commands,
+) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -226,7 +230,6 @@ fn dim_camera(
         (
             &mut PlayerStatus,
             &PlayerCheckpoint,
-            &mut PlayerInventory,
             &mut Transform,
             &mut Velocity,
         ),
@@ -244,17 +247,13 @@ fn dim_camera(
             Without<PlayerCameraMarker>,
         ),
     >,
+    mut query_jump_tokens: Query<(&mut JumpTokenStatus, &mut Visibility), With<JumpTokenMarker>>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
 ) {
-    let Ok((
-        mut player_status,
-        player_checkpoint,
-        mut player_inventory,
-        mut player_transform,
-        mut player_velocity,
-    )) = query_player.get_single_mut()
+    let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
+        query_player.get_single_mut()
     else {
         return;
     };
@@ -278,7 +277,11 @@ fn dim_camera(
                 next_state.set(LevelLoadingState::Loading);
             } else {
                 player_status.dead = false;
-                player_inventory.air_jumps = player_checkpoint.air_jumps;
+                for (mut token, mut visibility) in query_jump_tokens.iter_mut() {
+                    token.active = true;
+                    token.timer.reset();
+                    *visibility = Visibility::Inherited;
+                }
                 let new_translation = Vec3::new(
                     player_checkpoint.transform.x,
                     player_checkpoint.transform.y,

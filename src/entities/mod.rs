@@ -2,15 +2,15 @@ use crate::state::LevelLoadingState;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 
-mod clock;
-mod door;
-mod double_jump;
-mod goal;
-mod jump_token;
-mod key;
-mod lever;
-mod platform;
-mod wall_jump;
+pub mod clock;
+pub mod door;
+pub mod double_jump;
+pub mod goal;
+pub mod jump_token;
+pub mod key;
+pub mod lever;
+pub mod platform;
+pub mod wall_jump;
 
 use clock::{animate_clock, ClockBundle};
 use door::{add_door_interaction, check_door_interacting, DoorBundle};
