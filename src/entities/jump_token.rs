@@ -21,7 +21,7 @@ pub struct JumpTokenStatus {
 
 #[derive(Bundle, LdtkEntity)]
 pub struct JumpTokenBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/walljump.png", 16, 16, 4, 1, 0, 0, 0)]
+    #[sprite_sheet_bundle("../assets/spritesheets/jumptoken.png", 16, 16, 4, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     token_marker: JumpTokenMarker,
     token_status: JumpTokenStatus,

@@ -33,7 +33,7 @@ pub struct LeverSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct LeverBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/lever.png", 32, 16, 5, 1, 0, 0, 0)]
+    #[sprite_sheet_bundle("../assets/spritesheets/lever.png", 32, 16, 5, 4, 0, 0, 15)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     lever_marker: LeverMarker,
     #[with(lever_initial_state)]
@@ -97,7 +97,7 @@ pub fn animate_lever(
             
             match *state {
                 LeverAnimationState::LeftToRight => {
-                    if atlas.index == 4 {
+                    if (atlas.index+1) % 5 == 0{
                         *state = LeverAnimationState::Idle;
                     } else {
                         atlas.index += 1;
@@ -105,7 +105,7 @@ pub fn animate_lever(
                     timer.set_duration(Duration::from_millis(100));
                 }
                 LeverAnimationState::RightToLeft => {
-                    if atlas.index == 0 {
+                    if (atlas.index) % 5 == 0 {
                         *state = LeverAnimationState::Idle;
                     } else {
                         atlas.index -= 1;
@@ -154,10 +154,11 @@ pub fn check_lever_interacting(
             if platform_info.id == lever_state.id {
                 if lever_state.activated {
                     add_platform_colliders(&mut commands, platform);
-                    atlas.index = 0;
+                    
+                    atlas.index -= 1;
                 } else {
                     commands.entity(platform).despawn_descendants();
-                    atlas.index = 1
+                    atlas.index += 1;
 
                 }
             }

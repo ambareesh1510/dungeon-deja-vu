@@ -15,7 +15,7 @@ pub struct PlatformColliderMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct PlatformBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/leverplatform.png",16,16,2,1,0,0,0)]
+    #[sprite_sheet_bundle("../assets/spritesheets/leverplatform.png",16,16,2,4,0,0,6)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     platform_marker: PlatformMarker,
     #[with(door_initial_status)]
