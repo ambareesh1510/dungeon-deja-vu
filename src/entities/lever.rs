@@ -144,9 +144,9 @@ pub fn check_lever_interacting(
         
         println!("SWITCHING LEVER {}", lever_state.id);
         if lever_state.activated {
-            *animation_state = LeverAnimationState::LeftToRight;
-        } else {
             *animation_state = LeverAnimationState::RightToLeft;
+        } else {
+            *animation_state = LeverAnimationState::LeftToRight;
         }
         lever_state.activated = !lever_state.activated;
 
