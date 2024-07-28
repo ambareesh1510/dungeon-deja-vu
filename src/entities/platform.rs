@@ -48,11 +48,12 @@ pub fn insert_platform_colliders(
     mut query_doors: Query<(&PlatformInfo, &mut TextureAtlas, Entity), Added<PlatformMarker>>,
 ) {
     for (platform_info, mut atlas, platform) in query_doors.iter_mut() {
+        let base_index = (platform_info.id - 1) * 2;
         if platform_info.active {
             add_platform_colliders(&mut commands, platform);
-            atlas.index = 6;
+            atlas.index = base_index;
         } else {
-            atlas.index = 7;
+            atlas.index = base_index + 1;
         }
     }
 }
