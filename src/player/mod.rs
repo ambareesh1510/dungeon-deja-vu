@@ -297,6 +297,7 @@ fn move_player(
                 on_wall = true;
             }
         }
+        println!("state: {:?}", *player_state);
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;

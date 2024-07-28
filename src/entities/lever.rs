@@ -124,7 +124,7 @@ pub fn check_lever_interacting(
     mut query_lever_sensor: Query<(&mut Parent, Entity), With<LeverSensorMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_lever: Query<(&mut LeverState, &mut LeverAnimationState)>,
-    query_platforms: Query<(&PlatformInfo, Entity), With<PlatformMarker>>,
+    mut query_platforms: Query<(&PlatformInfo, &mut TextureAtlas, Entity), With<PlatformMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -150,12 +150,15 @@ pub fn check_lever_interacting(
         }
         lever_state.activated = !lever_state.activated;
 
-        for (platform_info, platform) in query_platforms.iter() {
+        for (platform_info, mut atlas, platform) in query_platforms.iter_mut() {
             if platform_info.id == lever_state.id {
                 if lever_state.activated {
                     add_platform_colliders(&mut commands, platform);
+                    atlas.index = 0;
                 } else {
                     commands.entity(platform).despawn_descendants();
+                    atlas.index = 1
+
                 }
             }
         }
