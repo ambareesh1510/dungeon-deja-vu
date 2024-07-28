@@ -24,7 +24,7 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_dim_mesh, spawn_background))
+        app.add_systems(Startup, (setup_dim_mesh,))
             .insert_resource(LdtkSettings {
                 level_background: LevelBackground::Nonexistent,
                 ..default()
@@ -33,6 +33,8 @@ impl Plugin for CameraManagementPlugin {
                 panning_state: CameraPanningState::PanningToGoal,
                 panning_timer: Timer::from_seconds(0.3, TimerMode::Once),
             })
+            .add_systems(OnEnter(LevelLoadingState::Loaded), spawn_background)
+            .add_systems(OnExit(LevelLoadingState::Loaded), cleanup_background)
             .add_systems(
                 Update,
                 (
@@ -206,6 +208,12 @@ fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
+#[derive(Component)]
+struct BackgroundMarker;
+
+#[derive(Component)]
+struct MidgroundMarker;
+
 fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     let background_sprite_handle = asset_server.load("backgroundwindows.png");
     // let midground_sprite_handle = asset_server.load("backgroundpillars.png");
@@ -225,7 +233,8 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                     texture: background_sprite_handle.clone(),
                     ..default()
                 })
-                .insert(BACKGROUND_RENDER_LAYER);
+                .insert(BACKGROUND_RENDER_LAYER)
+                .insert(BackgroundMarker);
         }
     }
     for x in 0..10 {
@@ -239,7 +248,14 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 ..default()
             })
-            .insert(MIDGROUND_RENDER_LAYER);
+            .insert(MIDGROUND_RENDER_LAYER)
+            .insert(MidgroundMarker);
+    }
+}
+
+fn cleanup_background(mut commands: Commands, query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>) {
+    for entity in query_background.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }
 
