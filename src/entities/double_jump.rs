@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct DoubleJumpMarker;
@@ -12,9 +14,10 @@ pub struct DoubleJumpSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct DoubleJumpBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/doublejump.png", 16, 16, 4, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     double_jump_marker: DoubleJumpMarker,
+    animation_timer: AnimationTimer
 }
 
 impl Default for DoubleJumpBundle {
@@ -22,10 +25,26 @@ impl Default for DoubleJumpBundle {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             double_jump_marker: DoubleJumpMarker,
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(300),
+                TimerMode::Repeating,
+            )),
+
         }
     }
 }
 
+pub fn animate_double_jump(
+    time: Res<Time>,
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<DoubleJumpMarker>>,
+) {
+    for (mut timer, mut atlas) in query.iter_mut() {
+        timer.tick(time.delta());
+        if timer.0.finished() {
+            atlas.index = (atlas.index + 1) % 4;
+        }
+    }
+}
 pub fn add_double_jump_sensor(
     mut commands: Commands,
     query_jump_token: Query<Entity, Added<DoubleJumpMarker>>,

@@ -123,11 +123,11 @@ impl Default for PlayerBundle {
                     Timer::from_seconds(1.5, TimerMode::Once),
                 ],
                 on_wall: [false; 2],
-                has_wall_jump: false,
+                has_wall_jump: true,
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
-            collider: Collider::round_cuboid(5., 3., 2.),
+            collider: Collider::round_cuboid(6., 3., 2.),
             mass: AdditionalMassProperties::Mass(50.),
             velocity: Velocity::default(),
             friction: Friction {
@@ -155,7 +155,7 @@ fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Adde
         commands.entity(entity).remove::<Restitution>();
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
-                Collider::round_cuboid(5., 3., 2.),
+                Collider::round_cuboid(6., 3., 2.),
                 TransformBundle::from_transform(Transform::from_xyz(0., -2., 0.)),
                 Friction {
                     coefficient: 0.,
@@ -297,6 +297,7 @@ fn move_player(
                 on_wall = true;
             }
         }
+        println!("state: {:?}", *player_state);
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;

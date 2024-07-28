@@ -12,12 +12,12 @@ mod lever;
 mod platform;
 
 use clock::{animate_clock, ClockBundle};
-use door::{add_door_interaction, check_door_interacting, DoorBundle};
-use double_jump::{add_double_jump_sensor, check_double_jump_acquire, DoubleJumpBundle};
+use door::{add_door_interaction, animate_door, check_door_interacting, DoorBundle};
+use double_jump::{add_double_jump_sensor, animate_double_jump, check_double_jump_acquire, DoubleJumpBundle};
 use goal::{add_goal_sensor, check_goal_reached, GoalBundle};
-use jump_token::{add_jump_token_sensor, check_jump_token_acquire, JumpTokenBundle};
+use jump_token::{add_jump_token_sensor, animate_jump_token, attach_timer, check_jump_token_acquire, JumpTokenBundle};
 use key::{add_key_sensor, check_key_interacting, KeyBundle};
-use lever::{add_lever_interaction, check_lever_interacting, LeverBundle};
+use lever::{add_lever_interaction, animate_lever, check_lever_interacting, LeverBundle};
 use platform::{insert_platform_colliders, PlatformBundle};
 
 pub struct EntityManagementPlugin;
@@ -49,6 +49,11 @@ impl Plugin for EntityManagementPlugin {
                     insert_platform_colliders,
                     add_goal_sensor,
                     check_goal_reached,
+                    animate_lever,
+                    animate_door,
+                    animate_jump_token,
+                    animate_double_jump,
+                    attach_timer,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );

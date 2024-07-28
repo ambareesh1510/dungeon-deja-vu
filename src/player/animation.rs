@@ -3,6 +3,8 @@ use std::time::Duration;
 
 use crate::player::{PlayerMarker, PlayerState};
 
+use super::PlayerInventory;
+
 #[derive(Resource)]
 pub struct AnimationInfo {
     moving_start: usize,
@@ -11,6 +13,8 @@ pub struct AnimationInfo {
     jumping_end: usize,
     falling_start: usize,
     falling_end: usize,
+    sliding_start: usize,
+    sliding_end: usize,
     falling_to_idle_start: usize,
     falling_to_idle_end: usize,
 
@@ -18,6 +22,7 @@ pub struct AnimationInfo {
     jumping_durations: Vec<u64>,
     falling_durations: Vec<u64>,
     falling_to_idle_durations: Vec<u64>,
+    sliding_durations: Vec<u64>,
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -34,11 +39,14 @@ impl Default for AnimationInfo {
             falling_end: 4,
             falling_to_idle_start: 6,
             falling_to_idle_end: 10,
+            sliding_start: 14,
+            sliding_end: 17,
 
             moving_durations: vec![100, 100, 100, 100],
             jumping_durations: vec![100, 100, 100],
             falling_durations: vec![100, 100, 100],
             falling_to_idle_durations: vec![50, 50, 50, 50, 50],
+            sliding_durations: vec![50, 50, 50, 50],
         }
     }
 }
@@ -47,11 +55,11 @@ pub fn animate_player(
     time: Res<Time>,
     animation_info: Res<AnimationInfo>,
     mut query: Query<
-        (&mut TextureAtlas, &mut PlayerState, &mut AnimationTimer),
+        (&mut TextureAtlas, &mut PlayerState, &mut PlayerInventory, &mut AnimationTimer),
         With<PlayerMarker>,
     >,
 ) {
-    if let Ok((mut atlas, mut state, mut timer)) = query.get_single_mut() {
+    if let Ok((mut atlas, mut state, inventory, mut timer)) = query.get_single_mut() {
         timer.tick(time.delta());
         // println!("state: {:?}", *state);
         if timer.finished() {
@@ -114,22 +122,40 @@ pub fn animate_player(
                     ));
                 }
                 PlayerState::Falling => {
-                    if atlas.index < animation_info.falling_start
-                        || atlas.index > animation_info.falling_end
-                    {
-                        atlas.index = animation_info.falling_start;
-                    } else {
-                        atlas.index = if atlas.index == animation_info.falling_end {
-                            atlas.index
+                    if inventory.on_wall[0] || inventory.on_wall[1] {
+                        println!("on wall");
+                        if atlas.index < animation_info.sliding_start || atlas.index > animation_info.sliding_end
+                        {
+                            atlas.index = animation_info.sliding_start;
+                        }
+                        atlas.index = if atlas.index == animation_info.sliding_end {
+                            animation_info.sliding_end
                         } else {
                             atlas.index + 1
                         };
-                    }
 
-                    timer.set_duration(Duration::from_millis(
-                        animation_info.falling_durations
-                            [atlas.index - animation_info.falling_start],
-                    ));
+                        timer.set_duration(Duration::from_millis(
+                            animation_info.sliding_durations[atlas.index - animation_info.sliding_start],
+                        ));
+                    } else {
+                        if atlas.index < animation_info.falling_start
+                            || atlas.index > animation_info.falling_end
+                        {
+                            atlas.index = animation_info.falling_start;
+                        } else {
+                            atlas.index = if atlas.index == animation_info.falling_end {
+                                atlas.index
+                            } else {
+                                atlas.index + 1
+                            };
+                        }
+
+                        timer.set_duration(Duration::from_millis(
+                            animation_info.falling_durations
+                                [atlas.index - animation_info.falling_start],
+                        ));
+                    }
+                    
                 }
                 PlayerState::MovingToIdle => {
                     atlas.index = animation_info.moving_start + 1;
@@ -155,6 +181,14 @@ pub fn animate_player(
                             [atlas.index - animation_info.falling_to_idle_start],
                     ));
                 }
+                // PlayerState::SlidingLeftWall => {
+                //     // no sliding animation as of now
+                //     atlas.index = 0;
+                // }
+                // PlayerState::SlidingRightWall => {
+                //     // no sliding animation as of now
+                //     atlas.index = 0;
+                // }
             }
         }
     }
