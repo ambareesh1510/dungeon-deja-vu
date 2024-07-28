@@ -65,7 +65,7 @@ impl Default for LeverBundle {
 fn lever_initial_state(ei: &EntityInstance) -> LeverState {
     LeverState {
         id: *ei.get_int_field("lever_id").unwrap() as usize,
-        activated: *ei.get_bool_field("activated").unwrap(),
+        activated: false,
     }
 }
 
@@ -124,7 +124,7 @@ pub fn check_lever_interacting(
     mut query_lever_sensor: Query<(&mut Parent, Entity), With<LeverSensorMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_lever: Query<(&mut LeverState, &mut LeverAnimationState)>,
-    mut query_platforms: Query<(&PlatformInfo, &mut TextureAtlas, Entity), With<PlatformMarker>>,
+    mut query_platforms: Query<(&mut PlatformInfo, &mut TextureAtlas, Entity), With<PlatformMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -150,9 +150,10 @@ pub fn check_lever_interacting(
         }
         lever_state.activated = !lever_state.activated;
 
-        for (platform_info, mut atlas, platform) in query_platforms.iter_mut() {
+        for (mut platform_info, mut atlas, platform) in query_platforms.iter_mut() {
             if platform_info.id == lever_state.id {
-                if lever_state.activated {
+                platform_info.active = !platform_info.active;
+                if platform_info.active {
                     add_platform_colliders(&mut commands, platform);
                     
                     atlas.index -= 1;
