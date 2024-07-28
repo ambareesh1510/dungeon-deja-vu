@@ -1,8 +1,10 @@
 use crate::{
-    entities::goal::GoalMarker, player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus}, state::TargetLevel,
+    entities::goal::GoalMarker,
     entities::jump_token::{JumpTokenMarker, JumpTokenStatus},
     // player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     // state::TargetLevel,
+    player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus},
+    state::TargetLevel,
 };
 use bevy::{
     prelude::*,
@@ -64,13 +66,28 @@ pub struct CameraPanning {
 
 fn pan_camera(
     mut camera_panning_state: ResMut<CameraPanning>,
-    mut query_player_camera: Query<
-        &mut Transform,
-        With<PlayerCameraMarker>,
+    mut query_player_camera: Query<&mut Transform, With<PlayerCameraMarker>>,
+    mut query_cameras: Query<
+        (&mut Transform, &ParallaxCoefficient),
+        (With<CameraMarker>, Without<PlayerCameraMarker>),
     >,
-    mut query_cameras: Query<(&mut Transform, &ParallaxCoefficient), (With<CameraMarker>, Without<PlayerCameraMarker>)>,
-    query_goal: Query<&Transform, (With<GoalMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
-    query_player: Query<&Transform, (With<PlayerMarker>, Without<GoalMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
+    query_goal: Query<
+        &Transform,
+        (
+            With<GoalMarker>,
+            Without<CameraMarker>,
+            Without<PlayerCameraMarker>,
+        ),
+    >,
+    query_player: Query<
+        &Transform,
+        (
+            With<PlayerMarker>,
+            Without<GoalMarker>,
+            Without<CameraMarker>,
+            Without<PlayerCameraMarker>,
+        ),
+    >,
     time: Res<Time>,
 ) {
     let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
@@ -86,9 +103,9 @@ fn pan_camera(
         CameraPanningState::PanningToGoal => {
             let target = goal_transform.translation;
             let delta = target - player_camera_transform.translation;
-            player_camera_transform.translation += delta / 30.;
+            player_camera_transform.translation.x += delta.x / 30.;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                camera_transform.translation += parallax_coefficient.0 * delta / 30.;
+                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtGoal;
@@ -98,8 +115,7 @@ fn pan_camera(
             let delta = (player_transform.translation) - player_camera_transform.translation;
             player_camera_transform.translation.x += delta.x / 30.;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                if parallax_coefficient.0 == 0.25 {
-                }
+                if parallax_coefficient.0 == 0.25 {}
                 camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
             }
             if delta.x.abs() < 1.0 {
@@ -343,7 +359,9 @@ fn dim_camera(
     let Ok(mut dim_sprite) = query_dim_sprite.get_single_mut() else {
         return;
     };
-    let Ok((mut player_camera_transform, player_camera_global_transform, player_camera)) = query_player_camera.get_single_mut() else {
+    let Ok((mut player_camera_transform, player_camera_global_transform, player_camera)) =
+        query_player_camera.get_single_mut()
+    else {
         return;
     };
     let Ok(window) = query_window.get_single() else {
@@ -389,15 +407,18 @@ fn dim_camera(
                 let low_pos = (screen_tl.y - screen_br.y) / 2.;
 
                 let delta = new_translation - player_transform.translation;
+
                 let camera_offset =
                     player_transform.translation.x - player_camera_transform.translation.x;
                 if camera_offset < 0. {
                     player_camera_transform.translation.x += camera_offset
                 };
+
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
                 for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
                     camera_transform.translation += parallax_coefficient.0 * delta;
+
                     if camera_offset < 0. {
                         camera_transform.translation.x += parallax_coefficient.0 * camera_offset
                     };
@@ -431,19 +452,27 @@ fn attach_player_camera_to_player(
         ),
     >,
     query_player: Query<(&Transform, &PlayerStatus), With<PlayerMarker>>,
-    query_goal: Query<&Transform, (With<GoalMarker>, Without<PlayerMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
+    query_goal: Query<
+        &Transform,
+        (
+            With<GoalMarker>,
+            Without<PlayerMarker>,
+            Without<CameraMarker>,
+            Without<PlayerCameraMarker>,
+        ),
+    >,
 ) {
     // if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer && camera_panning_state.panning_state != CameraPanningState::PanningToPlayer {
-    if camera_panning_state.panning_state == CameraPanningState::WaitingAtGoal  {
+    if camera_panning_state.panning_state == CameraPanningState::WaitingAtGoal {
         return;
     }
 
-    let motion_factor = if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
+    let motion_factor = if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer
+    {
         3.
     } else {
         30.
     };
-
 
     let Ok((player_camera, player_camera_global_transform, mut player_camera_transform)) =
         query_player_camera.get_single_mut()
@@ -453,7 +482,9 @@ fn attach_player_camera_to_player(
     let Ok((player_transform, player_status)) = query_player.get_single() else {
         return;
     };
-    if player_status.dead {return};
+    if player_status.dead {
+        return;
+    };
     let Ok(goal_transform) = query_goal.get_single() else {
         return;
     };
