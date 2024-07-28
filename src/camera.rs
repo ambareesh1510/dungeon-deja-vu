@@ -318,11 +318,11 @@ fn dim_camera(
         With<PlayerMarker>,
     >,
     mut query_player_camera: Query<
-        &mut Transform,
+        (&mut Transform, &GlobalTransform, &Camera),
         (With<PlayerCameraMarker>, Without<PlayerMarker>),
     >,
     mut query_cameras: Query<
-        &mut Transform,
+        (&mut Transform, &ParallaxCoefficient),
         (
             With<MainCameraMarker>,
             Without<PlayerMarker>,
@@ -343,7 +343,7 @@ fn dim_camera(
     let Ok(mut dim_sprite) = query_dim_sprite.get_single_mut() else {
         return;
     };
-    let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
+    let Ok((mut player_camera_transform, player_camera_global_transform, player_camera)) = query_player_camera.get_single_mut() else {
         return;
     };
     let Ok(window) = query_window.get_single() else {
@@ -376,6 +376,18 @@ fn dim_camera(
                     player_checkpoint.transform.y,
                     0.,
                 );
+                let screen_tl = player_camera
+                    .viewport_to_world_2d(player_camera_global_transform, Vec2::new(0., 0.))
+                    .unwrap();
+                let screen_br = player_camera
+                    .viewport_to_world_2d(
+                        player_camera_global_transform,
+                        player_camera.logical_viewport_size().unwrap(),
+                    )
+                    .unwrap();
+                // the height in world units the camera can see, divided by 2
+                let low_pos = (screen_tl.y - screen_br.y) / 2.;
+
                 let delta = new_translation - player_transform.translation;
                 let camera_offset =
                     player_transform.translation.x - player_camera_transform.translation.x;
@@ -384,11 +396,14 @@ fn dim_camera(
                 };
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
-                for mut camera_transform in query_cameras.iter_mut() {
-                    camera_transform.translation += delta;
+                for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
+                    camera_transform.translation += parallax_coefficient.0 * delta;
                     if camera_offset < 0. {
-                        camera_transform.translation.x += camera_offset
+                        camera_transform.translation.x += parallax_coefficient.0 * camera_offset
                     };
+                    if camera_transform.translation.y < low_pos * parallax_coefficient.0 {
+                        camera_transform.translation.y = low_pos * parallax_coefficient.0;
+                    }
                 }
             }
         }
@@ -415,7 +430,7 @@ fn attach_player_camera_to_player(
             (Without<PlayerMarker>, Without<PlayerCameraMarker>),
         ),
     >,
-    query_player: Query<&Transform, With<PlayerMarker>>,
+    query_player: Query<(&Transform, &PlayerStatus), With<PlayerMarker>>,
     query_goal: Query<&Transform, (With<GoalMarker>, Without<PlayerMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
 ) {
     // if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer && camera_panning_state.panning_state != CameraPanningState::PanningToPlayer {
@@ -423,10 +438,10 @@ fn attach_player_camera_to_player(
         return;
     }
 
-    let motion_factor = if camera_panning_state.panning_state == CameraPanningState::PanningToPlayer {
-        30.
-    } else {
+    let motion_factor = if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
         3.
+    } else {
+        30.
     };
 
 
@@ -435,9 +450,10 @@ fn attach_player_camera_to_player(
     else {
         return;
     };
-    let Ok(player_transform) = query_player.get_single() else {
+    let Ok((player_transform, player_status)) = query_player.get_single() else {
         return;
     };
+    if player_status.dead {return};
     let Ok(goal_transform) = query_goal.get_single() else {
         return;
     };
