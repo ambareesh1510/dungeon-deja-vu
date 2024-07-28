@@ -16,7 +16,7 @@ pub struct PlatformColliderMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct PlatformBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/leverplatform.png",16,16,2,4,0,0,6)]
+    #[sprite_sheet_bundle("../assets/spritesheets/leverplatform.png", 16, 16, 2, 4, 0, 0, 6)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     platform_marker: PlatformMarker,
     #[with(door_initial_status)]
@@ -61,7 +61,7 @@ pub fn insert_platform_colliders(
 pub fn add_platform_colliders(commands: &mut Commands, platform: Entity) {
     commands.entity(platform).with_children(|parent| {
         parent.spawn((
-            Collider::cuboid(8., 8.),
+            Collider::round_cuboid(5., 5., 3.),
             ActiveEvents::COLLISION_EVENTS,
             TransformBundle::default(),
             PlatformColliderMarker,

@@ -340,7 +340,7 @@ fn dim_camera(
     mut query_cameras: Query<
         (&mut Transform, &ParallaxCoefficient),
         (
-            With<MainCameraMarker>,
+            With<CameraMarker>,
             Without<PlayerMarker>,
             Without<PlayerCameraMarker>,
         ),
@@ -417,6 +417,7 @@ fn dim_camera(
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
                 for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
+                    dbg!(parallax_coefficient.0 * delta);
                     camera_transform.translation += parallax_coefficient.0 * delta;
 
                     if camera_offset < 0. {
