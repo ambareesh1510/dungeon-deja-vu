@@ -106,7 +106,6 @@ pub fn check_door_interacting(
     mut query_player: Query<&mut PlayerInventory, With<PlayerMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_door_state: Query<(Entity,&mut DoorAnimationState, &mut DoorState)>,
-    mut query_door_texture: Query<&mut TextureAtlas, With<DoorMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -122,7 +121,7 @@ pub fn check_door_interacting(
 
     for (door, door_collider) in query_doors.iter_mut() {
         let (door_entity, mut animation_state, mut door_state) = query_door_state.get_mut(door.get()).unwrap();
-        let atlas = &mut query_door_texture.get_mut(door.get()).unwrap();
+        
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
             if inventory.num_keys >= 1 {
                 println!("UNLOCKING DOOR");
