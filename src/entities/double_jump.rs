@@ -4,7 +4,10 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{
+    animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
+    SetCheckpointEvent,
+};
 
 #[derive(Component, Debug)]
 pub struct DoubleJumpMarker;
@@ -17,7 +20,7 @@ pub struct DoubleJumpBundle {
     #[sprite_sheet_bundle("../assets/spritesheets/doublejump.png", 16, 16, 4, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     double_jump_marker: DoubleJumpMarker,
-    animation_timer: AnimationTimer
+    animation_timer: AnimationTimer,
 }
 
 impl Default for DoubleJumpBundle {
@@ -29,7 +32,6 @@ impl Default for DoubleJumpBundle {
                 Duration::from_millis(300),
                 TimerMode::Repeating,
             )),
-
         }
     }
 }
@@ -45,6 +47,7 @@ pub fn animate_double_jump(
         }
     }
 }
+
 pub fn add_double_jump_sensor(
     mut commands: Commands,
     query_jump_token: Query<Entity, Added<DoubleJumpMarker>>,

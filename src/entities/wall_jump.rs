@@ -1,8 +1,13 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{
+    animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
+    SetCheckpointEvent,
+};
 
 #[derive(Component, Debug)]
 pub struct WallJumpMarker;
@@ -12,9 +17,10 @@ pub struct WallJumpSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct WallJumpBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/walljump.png", 16, 16, 4, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     wall_jump_marker: WallJumpMarker,
+    animation_timer: AnimationTimer,
 }
 
 impl Default for WallJumpBundle {
@@ -22,6 +28,22 @@ impl Default for WallJumpBundle {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             wall_jump_marker: WallJumpMarker,
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(300),
+                TimerMode::Repeating,
+            )),
+        }
+    }
+}
+
+pub fn animate_wall_jump(
+    time: Res<Time>,
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<WallJumpMarker>>,
+) {
+    for (mut timer, mut atlas) in query.iter_mut() {
+        timer.tick(time.delta());
+        if timer.0.finished() {
+            atlas.index = (atlas.index + 1) % 4;
         }
     }
 }

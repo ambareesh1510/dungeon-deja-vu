@@ -5,7 +5,7 @@ use std::time::Duration;
 
 pub mod animation;
 
-use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
+use crate::camera::{CameraPanning, CameraPanningState, PlayerCameraMarker, PLAYER_RENDER_LAYER};
 use crate::level::{BackwardsBarrier, KillPlayerMarker};
 use crate::state::LevelLoadingState;
 
@@ -289,6 +289,7 @@ fn move_player(
         ),
         With<PlayerMarker>,
     >,
+    camera_panning_state: Res<CameraPanning>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
@@ -319,7 +320,7 @@ fn move_player(
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
-        if player_status.dead || player_status.level_finished {
+        if player_status.dead || player_status.level_finished || camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer {
             return;
         }
         if keys.pressed(KeyCode::ArrowRight) {
