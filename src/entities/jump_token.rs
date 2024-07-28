@@ -15,8 +15,8 @@ pub struct JumpTokenSensorMarker;
 
 #[derive(Component, Debug)]
 pub struct JumpTokenStatus {
-    active: bool,
-    timer: Timer,
+    pub active: bool,
+    pub timer: Timer,
 }
 
 #[derive(Bundle, LdtkEntity)]

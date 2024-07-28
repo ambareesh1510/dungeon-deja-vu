@@ -79,10 +79,12 @@ fn cleanup_level_objects(
     }
 }
 
-const LEVEL_IIDS: [&str; 3] = [
+const LEVEL_IIDS: [&str; 5] = [
+    "584033f0-25d0-11ef-8b42-1596277d2df3",
     "410524d0-25d0-11ef-b3d7-db494d819bf6",
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
     "dd650080-25d0-11ef-814d-6b1968b17386",
+    "a4a8aaa0-25d0-11ef-8b42-cbb4af80c537",
 ];
 
 fn spawn_ldtk_world(
@@ -150,7 +152,7 @@ impl Default for SpikeBundle {
         Self {
             spike_marker: SpikeMarker,
             kill_player_marker: KillPlayerMarker,
-            collider: Collider::cuboid(6., 4.),
+            collider: Collider::cuboid(5., 5.),
             sensor: Sensor,
         }
     }
@@ -177,7 +179,7 @@ impl Default for TerrainBundle {
 }
 
 #[derive(Component)]
-struct BackwardsBarrier;
+pub struct BackwardsBarrier;
 
 fn spawn_backwards_barrier(mut commands: Commands) {
     commands
