@@ -7,6 +7,7 @@ edition = "2021"
 bevy = { version = "0.14.0", features = ["dynamic_linking"] }
 bevy_ecs_ldtk = "0.10.0"
 bevy_rapier2d = "0.27.0"
+rand = "0.8.4"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

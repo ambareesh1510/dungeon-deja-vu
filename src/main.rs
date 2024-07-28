@@ -26,7 +26,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
-        .add_plugins(RapierDebugRenderPlugin::default())
+        // .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins((
             CameraManagementPlugin,
             LevelManagementPlugin,
