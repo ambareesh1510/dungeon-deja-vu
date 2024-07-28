@@ -25,15 +25,14 @@ pub enum LeverAnimationState {
     Idle,
     LeftToRight,
     RightToLeft,
-    
-} 
+}
 
 #[derive(Component, Debug)]
 pub struct LeverSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct LeverBundle {
-    #[sprite_sheet_bundle("../assets/spritesheets/lever.png", 32, 16, 5, 4, 0, 0, 15)]
+    #[sprite_sheet_bundle("../assets/spritesheets/lever.png", 32, 16, 5, 4, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     lever_marker: LeverMarker,
     #[with(lever_initial_state)]
@@ -57,10 +56,8 @@ impl Default for LeverBundle {
             )),
             animation_state: LeverAnimationState::Idle,
         }
-
     }
 }
-
 
 fn lever_initial_state(ei: &EntityInstance) -> LeverState {
     LeverState {
@@ -71,9 +68,11 @@ fn lever_initial_state(ei: &EntityInstance) -> LeverState {
 
 pub fn add_lever_interaction(
     mut commands: Commands,
-    query_levers: Query<Entity, Added<LeverMarker>>,
+    mut query_levers: Query<(&mut TextureAtlas, &LeverState, Entity), Added<LeverMarker>>,
 ) {
-    for lever in query_levers.iter() {
+    for (mut atlas, state, lever) in query_levers.iter_mut() {
+        let base_index = (state.id - 1) * 5;
+        atlas.index = base_index;
         commands.entity(lever).with_children(|parent| {
             parent.spawn((
                 Collider::cuboid(8., 8.),
@@ -88,17 +87,23 @@ pub fn add_lever_interaction(
 
 pub fn animate_lever(
     time: Res<Time>,
-    mut query: Query<(&mut AnimationTimer, &mut LeverAnimationState, &mut TextureAtlas), With<LeverMarker>>,
+    mut query: Query<
+        (
+            &mut AnimationTimer,
+            &mut LeverAnimationState,
+            &mut TextureAtlas,
+        ),
+        With<LeverMarker>,
+    >,
 ) {
-    for (mut timer, mut state, mut atlas) in query.iter_mut() {
+    for (mut timer, mut animation_state, mut atlas) in query.iter_mut() {
         timer.tick(time.delta());
-        
+
         if timer.finished() {
-            
-            match *state {
+            match *animation_state {
                 LeverAnimationState::LeftToRight => {
-                    if (atlas.index+1) % 5 == 0{
-                        *state = LeverAnimationState::Idle;
+                    if (atlas.index + 1) % 5 == 0 {
+                        *animation_state = LeverAnimationState::Idle;
                     } else {
                         atlas.index += 1;
                     }
@@ -106,7 +111,7 @@ pub fn animate_lever(
                 }
                 LeverAnimationState::RightToLeft => {
                     if (atlas.index) % 5 == 0 {
-                        *state = LeverAnimationState::Idle;
+                        *animation_state = LeverAnimationState::Idle;
                     } else {
                         atlas.index -= 1;
                     }
@@ -124,7 +129,10 @@ pub fn check_lever_interacting(
     mut query_lever_sensor: Query<(&mut Parent, Entity), With<LeverSensorMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_lever: Query<(&mut LeverState, &mut LeverAnimationState)>,
-    mut query_platforms: Query<(&mut PlatformInfo, &mut TextureAtlas, Entity), With<PlatformMarker>>,
+    mut query_platforms: Query<
+        (&mut PlatformInfo, &mut TextureAtlas, Entity),
+        With<PlatformMarker>,
+    >,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -141,7 +149,6 @@ pub fn check_lever_interacting(
             continue;
         }
 
-        
         println!("SWITCHING LEVER {}", lever_state.id);
         if lever_state.activated {
             *animation_state = LeverAnimationState::RightToLeft;
@@ -155,12 +162,11 @@ pub fn check_lever_interacting(
                 platform_info.active = !platform_info.active;
                 if platform_info.active {
                     add_platform_colliders(&mut commands, platform);
-                    
+
                     atlas.index -= 1;
                 } else {
                     commands.entity(platform).despawn_descendants();
                     atlas.index += 1;
-
                 }
             }
         }
