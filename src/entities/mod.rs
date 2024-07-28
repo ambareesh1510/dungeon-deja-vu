@@ -5,7 +5,7 @@ use bevy_ecs_ldtk::prelude::*;
 mod clock;
 mod door;
 mod double_jump;
-mod goal;
+pub mod goal;
 mod jump_token;
 mod key;
 mod lever;

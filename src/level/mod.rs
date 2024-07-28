@@ -5,7 +5,7 @@ use tiles::spawn_wall_collision;
 
 mod tiles;
 
-use crate::camera::PlayerCameraMarker;
+use crate::camera::{CameraPanning, CameraPanningState, PlayerCameraMarker};
 use crate::player::{PlayerMarker, PlayerStatus, SetCheckpointEvent};
 use crate::state::{LevelLoadingState, TargetLevel};
 
@@ -188,6 +188,7 @@ fn spawn_backwards_barrier(mut commands: Commands) {
 }
 
 fn update_backwards_barrier(
+    camera_panning_state: ResMut<CameraPanning>,
     query_level: Query<&LayerMetadata, With<LayerMetadata>>,
     query_camera: Query<
         (&Camera, &Transform, &GlobalTransform),
@@ -195,6 +196,9 @@ fn update_backwards_barrier(
     >,
     mut query_barrier: Query<&mut Transform, With<BackwardsBarrier>>,
 ) {
+    if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer {
+        return;
+    }
     let Ok(mut barrier) = query_barrier.get_single_mut() else {
         return;
     };

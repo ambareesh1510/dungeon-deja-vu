@@ -1,6 +1,5 @@
 use crate::{
-    player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus},
-    state::TargetLevel,
+    entities::goal::GoalMarker, player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus}, state::TargetLevel
 };
 use bevy::{
     prelude::*,
@@ -22,10 +21,15 @@ impl Plugin for CameraManagementPlugin {
                 level_background: LevelBackground::Nonexistent,
                 ..default()
             })
+            .insert_resource(CameraPanning {
+                panning_state: CameraPanningState::PanningToGoal,
+                panning_timer: Timer::from_seconds(0.3, TimerMode::Once),
+            })
             .add_systems(
                 Update,
                 (
                     // undim_camera,
+                    pan_camera,
                     setup_camera,
                     attach_player_camera_to_player,
                     autoscroll_camera.after(loop_player),
@@ -37,6 +41,77 @@ impl Plugin for CameraManagementPlugin {
                     .run_if(in_state(LevelLoadingState::Loaded)),
             )
             .add_systems(OnExit(LevelLoadingState::Loaded), (cleanup_cameras,));
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub enum CameraPanningState {
+    PanningToGoal,
+    PanningToPlayer,
+    WaitingAtGoal,
+    WaitingAtPlayer,
+}
+
+#[derive(Resource)]
+pub struct CameraPanning {
+    panning_timer: Timer,
+    pub panning_state: CameraPanningState,
+}
+
+fn pan_camera(
+    mut camera_panning_state: ResMut<CameraPanning>,
+    mut query_player_camera: Query<
+        &mut Transform,
+        With<PlayerCameraMarker>,
+    >,
+    mut query_cameras: Query<(&mut Transform, &ParallaxCoefficient), (With<CameraMarker>, Without<PlayerCameraMarker>)>,
+    query_goal: Query<&Transform, (With<GoalMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
+    query_player: Query<&Transform, (With<PlayerMarker>, Without<GoalMarker>, Without<CameraMarker>, Without<PlayerCameraMarker>)>,
+    time: Res<Time>,
+) {
+    let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
+        return;
+    };
+    let Ok(goal_transform) = query_goal.get_single() else {
+        return;
+    };
+    let Ok(player_transform) = query_player.get_single() else {
+        return;
+    };
+    match camera_panning_state.panning_state {
+        CameraPanningState::PanningToGoal => {
+            let target = goal_transform.translation;
+            let delta = target - player_camera_transform.translation;
+            player_camera_transform.translation += delta / 30.;
+            for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
+                camera_transform.translation += parallax_coefficient.0 * delta / 30.;
+            }
+            if delta.x.abs() < 1.0 {
+                camera_panning_state.panning_state = CameraPanningState::WaitingAtGoal;
+            }
+        }
+        CameraPanningState::PanningToPlayer => {
+            let delta = (player_transform.translation) - player_camera_transform.translation;
+            player_camera_transform.translation.x += delta.x / 30.;
+            for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
+                if parallax_coefficient.0 == 0.25 {
+                }
+                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
+            }
+            if delta.x.abs() < 1.0 {
+                camera_panning_state.panning_state = CameraPanningState::WaitingAtPlayer;
+            }
+        }
+        CameraPanningState::WaitingAtGoal => {
+            if camera_panning_state.panning_timer.finished() {
+                camera_panning_state.panning_timer.reset();
+                camera_panning_state.panning_state = CameraPanningState::PanningToPlayer;
+            }
+            camera_panning_state.panning_timer.tick(time.delta());
+        }
+        CameraPanningState::WaitingAtPlayer => {
+            return;
+        }
     }
 }
 
@@ -221,6 +296,7 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
 }
 
 fn dim_camera(
+    mut camera_panning_state: ResMut<CameraPanning>,
     mut query_dim_sprite: Query<&mut Sprite, With<DimMeshMarker>>,
     mut query_player: Query<
         (
@@ -276,6 +352,7 @@ fn dim_camera(
             if player_status.level_finished {
                 target_level.0 += 1;
                 next_state.set(LevelLoadingState::Loading);
+                camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
             } else {
                 player_status.dead = false;
                 player_inventory.air_jumps = player_checkpoint.air_jumps;
@@ -311,6 +388,7 @@ fn dim_camera(
 
 // TODO: make this use delta time!
 fn attach_player_camera_to_player(
+    camera_panning_state: ResMut<CameraPanning>,
     mut query_player_camera: Query<
         &mut Transform,
         (With<PlayerCameraMarker>, Without<PlayerMarker>),
@@ -324,6 +402,14 @@ fn attach_player_camera_to_player(
     >,
     query_player: Query<&Transform, With<PlayerMarker>>,
 ) {
+    if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer && camera_panning_state.panning_state != CameraPanningState::PanningToPlayer {
+        return;
+    }
+    let motion_factor = if camera_panning_state.panning_state == CameraPanningState::PanningToPlayer {
+        30.
+    } else {
+        3.
+    };
     // the lowest possible position of the camera such that the part outside of the level is not
     // shown
     let low_pos = CAMERA_UNIT_HEIGHT / 2.;
@@ -331,15 +417,17 @@ fn attach_player_camera_to_player(
         query_player_camera.get_single_mut(),
         query_player.get_single(),
     ) {
-        let delta = (player_transform.translation.y - 10.0) - player_camera_transform.translation.y;
-        player_camera_transform.translation.y += delta / 3.;
+        let delta = (player_transform.translation.y) - player_camera_transform.translation.y;
+        player_camera_transform.translation.y += delta / motion_factor;
+        let mut is_at_low = false;
         if player_camera_transform.translation.y < low_pos {
             player_camera_transform.translation.y = low_pos;
+            is_at_low = true;
         }
         for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
-            main_camera_transform.translation.y += parallax_coefficient.0 * delta / 3.;
-            if main_camera_transform.translation.y < low_pos {
-                main_camera_transform.translation.y = low_pos;
+            main_camera_transform.translation.y += parallax_coefficient.0 * delta / motion_factor;
+            if is_at_low {
+                main_camera_transform.translation.y = low_pos * parallax_coefficient.0;
             }
         }
     }
