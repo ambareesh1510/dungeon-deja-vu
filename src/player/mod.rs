@@ -6,7 +6,7 @@ use std::time::Duration;
 pub mod animation;
 
 use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
-use crate::level::KillPlayerMarker;
+use crate::level::{BackwardsBarrier, KillPlayerMarker};
 use crate::state::LevelLoadingState;
 
 use animation::{animate_player, AnimationInfo, AnimationTimer};
@@ -209,6 +209,7 @@ fn update_player_grounded(
             Without<PlayerJumpColliderMarker>,
         ),
     >,
+    query_backwards_barrier: Query<Entity, With<BackwardsBarrier>>,
     rapier_context: Res<RapierContext>,
 ) {
     let Ok(player_jump_collider_entity) = query_player_jump_collider.get_single() else {
@@ -218,6 +219,9 @@ fn update_player_grounded(
     let Ok((player_entity, mut player_inventory, mut player_state, velocity)) =
         query_player.get_single_mut()
     else {
+        return;
+    };
+    let Ok(backwards_barrier) = query_backwards_barrier.get_single() else {
         return;
     };
 
@@ -231,7 +235,10 @@ fn update_player_grounded(
             } else {
                 collider_2
             };
-            if query_sensors.get(other_entity).is_err() && other_entity != player_entity {
+            if query_sensors.get(other_entity).is_err()
+                && other_entity != player_entity
+                && other_entity != backwards_barrier
+            {
                 player_inventory.on_wall[wall_cooldown.dir] = true;
                 // remove the air jumps if hit something
                 player_inventory.air_jumps = 0;

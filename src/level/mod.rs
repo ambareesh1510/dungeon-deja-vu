@@ -179,7 +179,7 @@ impl Default for TerrainBundle {
 }
 
 #[derive(Component)]
-struct BackwardsBarrier;
+pub struct BackwardsBarrier;
 
 fn spawn_backwards_barrier(mut commands: Commands) {
     commands
