@@ -234,6 +234,8 @@ fn update_player_grounded(
             };
             if query_sensors.get(other_entity).is_err() && other_entity != player_entity {
                 player_inventory.on_wall[wall_cooldown.dir] = true;
+                // remove the air jumps if hit something
+                player_inventory.air_jumps = 0;
             }
         }
     }
@@ -250,6 +252,8 @@ fn update_player_grounded(
         if query_sensors.get(other_entity).is_err() {
             grounded = true;
             player_inventory.extra_jumps = player_inventory.max_extra_jumps;
+            // remove the air jumps if hit something
+            player_inventory.air_jumps = 0;
         }
     }
 
