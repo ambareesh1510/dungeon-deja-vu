@@ -23,6 +23,7 @@ impl Plugin for PlayerManagementPlugin {
                 (
                     add_colliders,
                     update_player_grounded,
+                    tick_buffer_frames,
                     move_player,
                     loop_player,
                     animate_player,
@@ -51,6 +52,8 @@ pub struct PlayerWallColliderMarker {
 #[derive(Component)]
 pub struct PlayerStatus {
     jump_cooldown: Timer,
+    coyote_frames: Timer,
+    jump_buffer: Timer,
     pub level_finished: bool,
     pub dead: bool,
     // air_jumps: usize,
@@ -110,10 +113,14 @@ impl Default for PlayerBundle {
             player_marker: PlayerMarker,
             player_status: PlayerStatus {
                 jump_cooldown: jump_cooldown_timer,
+                coyote_frames: Timer::new(Duration::from_millis(100), TimerMode::Once),
+                jump_buffer: {
+                    let mut timer = Timer::new(Duration::from_millis(100), TimerMode::Once);
+                    timer.tick(Duration::from_millis(100));
+                    timer
+                },
                 level_finished: false,
                 dead: false,
-                // air_jumps: 1,
-                // max_air_jumps: 1,
             },
             player_inventory: PlayerInventory {
                 num_keys: 0,
@@ -200,7 +207,7 @@ fn update_player_grounded(
         With<PlayerWallColliderMarker>,
     >,
     mut query_player: Query<
-        (Entity, &mut PlayerInventory, &mut PlayerState, &Velocity),
+        (Entity, &mut PlayerInventory, &mut PlayerState, &mut PlayerStatus, &Velocity),
         With<PlayerMarker>,
     >,
     query_sensors: Query<
@@ -218,7 +225,7 @@ fn update_player_grounded(
         return;
     };
 
-    let Ok((player_entity, mut player_inventory, mut player_state, velocity)) =
+    let Ok((player_entity, mut player_inventory, mut player_state, mut player_status, velocity)) =
         query_player.get_single_mut()
     else {
         return;
@@ -262,6 +269,7 @@ fn update_player_grounded(
         };
         if query_sensors.get(other_entity).is_err() {
             grounded = true;
+            player_status.coyote_frames.reset();
             player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             // remove the air jumps if hit something
             player_inventory.air_jumps = 0;
@@ -276,6 +284,17 @@ fn update_player_grounded(
     } else if !grounded && velocity.linvel.y < 0. && (*player_state != PlayerState::FallingToIdle && *player_state != PlayerState::Sliding && *player_state != PlayerState::SlidingToJump) {
         *player_state = PlayerState::Falling;
     }
+}
+
+fn tick_buffer_frames(
+    time: Res<Time>,
+    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+) {
+    let Ok(mut player_status) = query_player.get_single_mut() else {
+        return;
+    };
+    player_status.coyote_frames.tick(time.delta());
+    player_status.jump_buffer.tick(time.delta());
 }
 
 fn move_player(
@@ -361,11 +380,16 @@ fn move_player(
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if keys.just_pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
+        if (keys.just_pressed(KeyCode::ArrowUp) || !player_status.jump_buffer.finished()) && player_status.jump_cooldown.finished() {
+            if keys.just_pressed(KeyCode::ArrowUp) {
+                player_status.jump_buffer.reset();
+            }
             let mut can_jump = false;
             let mut wall_jump = false;
             if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
                 // jump from floor
+                can_jump = true;
+            } else if !player_status.coyote_frames.finished() {
                 can_jump = true;
             } else if player_inventory.has_wall_jump
                 && player_inventory.on_wall[0]
