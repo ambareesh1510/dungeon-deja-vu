@@ -1,8 +1,11 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
+use rand::prelude::*;
 
-use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker};
+use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker};
 
 #[derive(Component, Debug)]
 pub struct JumpTokenMarker;
@@ -18,10 +21,11 @@ pub struct JumpTokenStatus {
 
 #[derive(Bundle, LdtkEntity)]
 pub struct JumpTokenBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/jumptoken.png", 16, 16, 4, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     token_marker: JumpTokenMarker,
     token_status: JumpTokenStatus,
+    animation_timer: AnimationTimer,
 }
 
 impl Default for JumpTokenBundle {
@@ -33,6 +37,32 @@ impl Default for JumpTokenBundle {
                 timer: Timer::from_seconds(5., TimerMode::Once),
                 active: true,
             },
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(300),
+                TimerMode::Repeating,
+            )),
+        }
+    }
+}
+
+pub fn attach_timer(mut commands: Commands, query: Query<Entity, Added<JumpTokenMarker>>) {
+    let mut rng = rand::thread_rng();
+    for entity in query.iter() {
+        commands.entity(entity).insert(AnimationTimer(Timer::new(
+            Duration::from_millis(rng.gen_range(200..400)),
+            TimerMode::Repeating,
+        )));
+    }
+}
+
+pub fn animate_jump_token(
+    time: Res<Time>,
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<JumpTokenMarker>>,
+) {
+    for (mut timer, mut atlas) in query.iter_mut() {
+        timer.tick(time.delta());
+        if timer.0.finished() {
+            atlas.index = (atlas.index + 1) % 4;
         }
     }
 }
