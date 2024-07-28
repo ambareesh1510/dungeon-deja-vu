@@ -6,7 +6,7 @@ use std::time::Duration;
 pub mod animation;
 
 use crate::camera::{PlayerCameraMarker, PLAYER_RENDER_LAYER};
-use crate::level::KillPlayerMarker;
+use crate::level::{BackwardsBarrier, KillPlayerMarker};
 use crate::state::LevelLoadingState;
 
 use animation::{animate_player, AnimationInfo, AnimationTimer};
@@ -119,15 +119,15 @@ impl Default for PlayerBundle {
                 extra_jumps: 0,
                 air_jumps: 0,
                 wall_jump_cd: [
-                    Timer::from_seconds(1.5, TimerMode::Once),
-                    Timer::from_seconds(1.5, TimerMode::Once),
+                    Timer::from_seconds(0.8, TimerMode::Once),
+                    Timer::from_seconds(0.8, TimerMode::Once),
                 ],
                 on_wall: [false; 2],
                 has_wall_jump: false,
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
-            collider: Collider::round_cuboid(5., 3., 2.),
+            collider: Collider::round_cuboid(6., 3., 2.),
             mass: AdditionalMassProperties::Mass(50.),
             velocity: Velocity::default(),
             friction: Friction {
@@ -155,7 +155,7 @@ fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Adde
         commands.entity(entity).remove::<Restitution>();
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
-                Collider::round_cuboid(5., 3., 2.),
+                Collider::round_cuboid(6., 3., 2.),
                 TransformBundle::from_transform(Transform::from_xyz(0., -2., 0.)),
                 Friction {
                     coefficient: 0.,
@@ -180,14 +180,13 @@ fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Adde
                     Collider::round_cuboid(2., 1., 2.),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
-                    TransformBundle::from_transform(Transform::from_xyz(dir * 4.1, -2., 0.)),
+                    TransformBundle::from_transform(Transform::from_xyz(dir * 4.3, -2., 0.)),
                     PlayerWallColliderMarker { dir: i },
                 ));
             }
         });
         commands.entity(entity).insert(PlayerCheckpoint {
             transform: player_transform.translation.xy(),
-            air_jumps: 0,
         });
     }
 }
@@ -210,6 +209,7 @@ fn update_player_grounded(
             Without<PlayerJumpColliderMarker>,
         ),
     >,
+    query_backwards_barrier: Query<Entity, With<BackwardsBarrier>>,
     rapier_context: Res<RapierContext>,
 ) {
     let Ok(player_jump_collider_entity) = query_player_jump_collider.get_single() else {
@@ -219,6 +219,9 @@ fn update_player_grounded(
     let Ok((player_entity, mut player_inventory, mut player_state, velocity)) =
         query_player.get_single_mut()
     else {
+        return;
+    };
+    let Ok(backwards_barrier) = query_backwards_barrier.get_single() else {
         return;
     };
 
@@ -232,8 +235,13 @@ fn update_player_grounded(
             } else {
                 collider_2
             };
-            if query_sensors.get(other_entity).is_err() && other_entity != player_entity {
+            if query_sensors.get(other_entity).is_err()
+                && other_entity != player_entity
+                && other_entity != backwards_barrier
+            {
                 player_inventory.on_wall[wall_cooldown.dir] = true;
+                // remove the air jumps if hit something
+                player_inventory.air_jumps = 0;
             }
         }
     }
@@ -250,6 +258,8 @@ fn update_player_grounded(
         if query_sensors.get(other_entity).is_err() {
             grounded = true;
             player_inventory.extra_jumps = player_inventory.max_extra_jumps;
+            // remove the air jumps if hit something
+            player_inventory.air_jumps = 0;
         }
     }
 
@@ -297,6 +307,7 @@ fn move_player(
                 on_wall = true;
             }
         }
+        // println!("state: {:?}", *player_state);
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
@@ -319,13 +330,21 @@ fn move_player(
             sprite.flip_x = true;
             moved = true
         }
+
+        // hack
+        if player_inventory.on_wall[0] {
+            sprite.flip_x = true;
+        } else if player_inventory.on_wall[1] {
+            sprite.flip_x = false;
+        }
+
         if !moved {
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::MovingRight
             {
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if keys.pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
+        if keys.just_pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
             let mut can_jump = false;
             if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
                 // jump from floor
@@ -337,6 +356,8 @@ fn move_player(
                 // wall jump from left wall
                 can_jump = true;
                 player_inventory.wall_jump_cd[0].reset();
+                // if they use the wall jump, reset their double jump
+                player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.has_wall_jump
                 && player_inventory.on_wall[1]
                 && player_inventory.wall_jump_cd[1].finished()
@@ -344,6 +365,8 @@ fn move_player(
                 // wall jump from right wall
                 can_jump = true;
                 player_inventory.wall_jump_cd[1].reset();
+                // if they use the wall jump, reset their double jump
+                player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.extra_jumps >= 1 {
                 // jump in air with double jump
                 can_jump = true;
@@ -362,8 +385,8 @@ fn move_player(
         }
 
         // allow player to slide down walls if they have wall jump
-        if on_wall && player_inventory.has_wall_jump && player_velocity.linvel.y < -45. {
-            player_velocity.linvel.y = -45.;
+        if on_wall && player_inventory.has_wall_jump && player_velocity.linvel.y < -75. {
+            player_velocity.linvel.y = -75.;
         }
 
         player_velocity.linvel.x /= 1.6;
@@ -411,27 +434,20 @@ pub fn loop_player(
 #[derive(Component, Debug)]
 pub struct PlayerCheckpoint {
     pub transform: Vec2,
-    pub air_jumps: usize,
 }
 
 #[derive(Event)]
 pub struct SetCheckpointEvent;
 
 fn set_player_checkpoint(
-    mut query_player: Query<
-        (&mut PlayerCheckpoint, &PlayerInventory, &Transform),
-        With<PlayerMarker>,
-    >,
+    mut query_player: Query<(&mut PlayerCheckpoint, &Transform), With<PlayerMarker>>,
     mut checkpoint_events: EventReader<SetCheckpointEvent>,
 ) {
-    let Ok((mut player_checkpoint, player_inventory, player_transform)) =
-        query_player.get_single_mut()
-    else {
+    let Ok((mut player_checkpoint, player_transform)) = query_player.get_single_mut() else {
         return;
     };
     for SetCheckpointEvent in checkpoint_events.read() {
         player_checkpoint.transform = player_transform.translation.xy();
-        player_checkpoint.air_jumps = player_inventory.air_jumps;
         println!("set player checkpoint to {}", player_checkpoint.transform)
     }
 }

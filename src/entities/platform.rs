@@ -8,6 +8,7 @@ pub struct PlatformMarker;
 #[derive(Component, Debug)]
 pub struct PlatformInfo {
     pub id: usize,
+    pub active: bool,
 }
 
 #[derive(Component, Debug)]
@@ -15,7 +16,7 @@ pub struct PlatformColliderMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct PlatformBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/leverplatform.png",16,16,2,4,0,0,6)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     platform_marker: PlatformMarker,
     #[with(door_initial_status)]
@@ -27,7 +28,10 @@ impl Default for PlatformBundle {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             platform_marker: PlatformMarker,
-            platform_state: PlatformInfo { id: 0 },
+            platform_state: PlatformInfo {
+                id: 0,
+                active: true,
+            },
         }
     }
 }
@@ -35,15 +39,21 @@ impl Default for PlatformBundle {
 fn door_initial_status(ei: &EntityInstance) -> PlatformInfo {
     PlatformInfo {
         id: *ei.get_int_field("platform_id").unwrap() as usize,
+        active: *ei.get_bool_field("init_state").unwrap(),
     }
 }
 
 pub fn insert_platform_colliders(
     mut commands: Commands,
-    query_doors: Query<Entity, Added<PlatformMarker>>,
+    mut query_doors: Query<(&PlatformInfo, &mut TextureAtlas, Entity), Added<PlatformMarker>>,
 ) {
-    for platform in query_doors.iter() {
-        add_platform_colliders(&mut commands, platform)
+    for (platform_info, mut atlas, platform) in query_doors.iter_mut() {
+        if platform_info.active {
+            add_platform_colliders(&mut commands, platform);
+            atlas.index = 6;
+        } else {
+            atlas.index = 7;
+        }
     }
 }
 
