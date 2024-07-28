@@ -66,6 +66,8 @@ pub enum PlayerState {
     Falling,
     MovingToIdle,
     FallingToIdle,
+    Sliding,
+    SlidingToJump
 }
 
 #[derive(Component, Debug)]
@@ -240,6 +242,9 @@ fn update_player_grounded(
                 && other_entity != backwards_barrier
             {
                 player_inventory.on_wall[wall_cooldown.dir] = true;
+                if player_inventory.has_wall_jump {
+                    *player_state = PlayerState::Sliding;
+                }
                 // remove the air jumps if hit something
                 player_inventory.air_jumps = 0;
             }
@@ -263,10 +268,12 @@ fn update_player_grounded(
         }
     }
 
-    if grounded && *player_state == PlayerState::Falling {
+    if grounded && (*player_state == PlayerState::Falling || *player_state == PlayerState::Sliding) {
         println!("Resetting jump");
         *player_state = PlayerState::FallingToIdle;
-    } else if !grounded && velocity.linvel.y < 0. && *player_state != PlayerState::FallingToIdle {
+    } else if !grounded && *player_state == PlayerState::Sliding && !(player_inventory.on_wall[0] || player_inventory.on_wall[1]) {
+        *player_state = PlayerState::SlidingToJump;
+    } else if !grounded && velocity.linvel.y < 0. && (*player_state != PlayerState::FallingToIdle && *player_state != PlayerState::Sliding && *player_state != PlayerState::SlidingToJump) {
         *player_state = PlayerState::Falling;
     }
 }
@@ -293,6 +300,7 @@ fn move_player(
         mut player_state,
     )) = query_player.get_single_mut()
     {
+        println!("state: {:?}", *player_state);
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
             // player_status.grounded = false;
@@ -319,7 +327,11 @@ fn move_player(
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingRight;
             }
-            sprite.flip_x = false;
+            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
+                sprite.flip_x = false;
+            } else if *player_state == PlayerState::Sliding && !on_wall {
+                *player_state = PlayerState::SlidingToJump;
+            }
             moved = true;
         }
         if keys.pressed(KeyCode::ArrowLeft) {
@@ -327,7 +339,11 @@ fn move_player(
             if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingLeft;
             }
-            sprite.flip_x = true;
+            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
+                sprite.flip_x = true;
+            } else if *player_state == PlayerState::Sliding && !on_wall {
+                *player_state = PlayerState::SlidingToJump;
+            }
             moved = true
         }
 
@@ -346,6 +362,7 @@ fn move_player(
         }
         if keys.just_pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
             let mut can_jump = false;
+            let mut wall_jump = false;
             if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
                 // jump from floor
                 can_jump = true;
@@ -355,6 +372,7 @@ fn move_player(
             {
                 // wall jump from left wall
                 can_jump = true;
+                wall_jump = true;
                 player_inventory.wall_jump_cd[0].reset();
                 // if they use the wall jump, reset their double jump
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
@@ -364,6 +382,7 @@ fn move_player(
             {
                 // wall jump from right wall
                 can_jump = true;
+                wall_jump = true;
                 player_inventory.wall_jump_cd[1].reset();
                 // if they use the wall jump, reset their double jump
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
@@ -379,8 +398,14 @@ fn move_player(
             // ugly but i wrote it like this so i can print debug messages
             if can_jump {
                 player_velocity.linvel.y = 130.;
-                *player_state = PlayerState::Jumping;
+                if wall_jump {
+                    *player_state = PlayerState::SlidingToJump;
+                } else {
+                    println!("asldkfjhalskjdfhlaksjdlkasjhflkasjhflk");
+                    *player_state = PlayerState::Jumping;
+                }
                 player_status.jump_cooldown.reset();
+                
             }
         }
 
