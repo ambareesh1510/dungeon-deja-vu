@@ -363,7 +363,7 @@ fn move_player(
         if keys.just_pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
             let mut can_jump = false;
             let mut wall_jump = false;
-            if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
+            if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling && *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
                 // jump from floor
                 can_jump = true;
             } else if player_inventory.has_wall_jump
@@ -375,6 +375,7 @@ fn move_player(
                 wall_jump = true;
                 player_inventory.wall_jump_cd[0].reset();
                 // if they use the wall jump, reset their double jump
+                println!("wall jump");
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.has_wall_jump
                 && player_inventory.on_wall[1]
@@ -384,6 +385,7 @@ fn move_player(
                 can_jump = true;
                 wall_jump = true;
                 player_inventory.wall_jump_cd[1].reset();
+                println!("wall jump");
                 // if they use the wall jump, reset their double jump
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.extra_jumps >= 1 {
@@ -395,6 +397,7 @@ fn move_player(
                 can_jump = true;
                 player_inventory.air_jumps -= 1;
             }
+            
             // ugly but i wrote it like this so i can print debug messages
             if can_jump {
                 player_velocity.linvel.y = 130.;
