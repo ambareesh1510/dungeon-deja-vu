@@ -55,7 +55,12 @@ pub fn animate_player(
     time: Res<Time>,
     animation_info: Res<AnimationInfo>,
     mut query: Query<
-        (&mut TextureAtlas, &mut PlayerState, &mut PlayerInventory, &mut AnimationTimer),
+        (
+            &mut TextureAtlas,
+            &mut PlayerState,
+            &mut PlayerInventory,
+            &mut AnimationTimer,
+        ),
         With<PlayerMarker>,
     >,
 ) {
@@ -104,27 +109,10 @@ pub fn animate_player(
                     ));
                 }
                 PlayerState::Jumping => {
-                    if atlas.index < animation_info.jumping_start
-                        || atlas.index > animation_info.jumping_end
-                    {
-                        atlas.index = animation_info.jumping_start;
-                    } else {
-                        atlas.index = if atlas.index == animation_info.jumping_end {
-                            atlas.index
-                        } else {
-                            atlas.index + 1
-                        };
-                    }
-
-                    timer.set_duration(Duration::from_millis(
-                        animation_info.jumping_durations
-                            [atlas.index - animation_info.jumping_start],
-                    ));
-                }
-                PlayerState::Falling => {
-                    if inventory.on_wall[0] || inventory.on_wall[1] {
-                        println!("on wall");
-                        if atlas.index < animation_info.sliding_start || atlas.index > animation_info.sliding_end
+                    if (inventory.on_wall[0] || inventory.on_wall[1]) && inventory.has_wall_jump {
+                        // println!("on wall");
+                        if atlas.index < animation_info.sliding_start
+                            || atlas.index > animation_info.sliding_end
                         {
                             atlas.index = animation_info.sliding_start;
                         }
@@ -135,7 +123,45 @@ pub fn animate_player(
                         };
 
                         timer.set_duration(Duration::from_millis(
-                            animation_info.sliding_durations[atlas.index - animation_info.sliding_start],
+                            animation_info.sliding_durations
+                                [atlas.index - animation_info.sliding_start],
+                        ));
+                    } else {
+                        if atlas.index < animation_info.jumping_start
+                            || atlas.index > animation_info.jumping_end
+                        {
+                            atlas.index = animation_info.jumping_start;
+                        } else {
+                            atlas.index = if atlas.index == animation_info.jumping_end {
+                                atlas.index
+                            } else {
+                                atlas.index + 1
+                            };
+                        }
+
+                        timer.set_duration(Duration::from_millis(
+                            animation_info.jumping_durations
+                                [atlas.index - animation_info.jumping_start],
+                        ));
+                    }
+                }
+                PlayerState::Falling => {
+                    if (inventory.on_wall[0] || inventory.on_wall[1]) && inventory.has_wall_jump {
+                        // println!("on wall");
+                        if atlas.index < animation_info.sliding_start
+                            || atlas.index > animation_info.sliding_end
+                        {
+                            atlas.index = animation_info.sliding_start;
+                        }
+                        atlas.index = if atlas.index == animation_info.sliding_end {
+                            animation_info.sliding_end
+                        } else {
+                            atlas.index + 1
+                        };
+
+                        timer.set_duration(Duration::from_millis(
+                            animation_info.sliding_durations
+                                [atlas.index - animation_info.sliding_start],
                         ));
                     } else {
                         if atlas.index < animation_info.falling_start
@@ -155,7 +181,6 @@ pub fn animate_player(
                                 [atlas.index - animation_info.falling_start],
                         ));
                     }
-                    
                 }
                 PlayerState::MovingToIdle => {
                     atlas.index = animation_info.moving_start + 1;
@@ -180,15 +205,14 @@ pub fn animate_player(
                         animation_info.falling_to_idle_durations
                             [atlas.index - animation_info.falling_to_idle_start],
                     ));
-                }
-                // PlayerState::SlidingLeftWall => {
-                //     // no sliding animation as of now
-                //     atlas.index = 0;
-                // }
-                // PlayerState::SlidingRightWall => {
-                //     // no sliding animation as of now
-                //     atlas.index = 0;
-                // }
+                } // PlayerState::SlidingLeftWall => {
+                  //     // no sliding animation as of now
+                  //     atlas.index = 0;
+                  // }
+                  // PlayerState::SlidingRightWall => {
+                  //     // no sliding animation as of now
+                  //     atlas.index = 0;
+                  // }
             }
         }
     }

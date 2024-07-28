@@ -123,7 +123,7 @@ impl Default for PlayerBundle {
                     Timer::from_seconds(0.8, TimerMode::Once),
                 ],
                 on_wall: [false; 2],
-                has_wall_jump: true,
+                has_wall_jump: false,
             },
             rigid_body: RigidBody::Dynamic,
             // collider: Collider::cuboid(5., 5.),
@@ -180,7 +180,7 @@ fn add_colliders(mut commands: Commands, query: Query<(Entity, &Transform), Adde
                     Collider::round_cuboid(2., 1., 2.),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
-                    TransformBundle::from_transform(Transform::from_xyz(dir * 4.1, -2., 0.)),
+                    TransformBundle::from_transform(Transform::from_xyz(dir * 4.3, -2., 0.)),
                     PlayerWallColliderMarker { dir: i },
                 ));
             }
@@ -307,7 +307,7 @@ fn move_player(
                 on_wall = true;
             }
         }
-        println!("state: {:?}", *player_state);
+        // println!("state: {:?}", *player_state);
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
@@ -330,6 +330,14 @@ fn move_player(
             sprite.flip_x = true;
             moved = true
         }
+
+        // hack
+        if player_inventory.on_wall[0] {
+            sprite.flip_x = true;
+        } else if player_inventory.on_wall[1] {
+            sprite.flip_x = false;
+        }
+
         if !moved {
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::MovingRight
             {
