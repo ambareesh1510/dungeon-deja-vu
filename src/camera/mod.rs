@@ -3,7 +3,7 @@ use crate::{
     entities::jump_token::{JumpTokenMarker, JumpTokenStatus},
     // player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     // state::TargetLevel,
-    player::{loop_player, PlayerCheckpoint, PlayerInventory, PlayerMarker, PlayerStatus},
+    player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
 use bevy::{
@@ -12,10 +12,12 @@ use bevy::{
 };
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::Velocity;
+use hud::{spawn_hud, update_hud};
+
+mod hud;
 
 use crate::state::LevelLoadingState;
 
-const CAMERA_UNIT_HEIGHT: f32 = 256.;
 const CAMERA_UNIT_WIDTH: f32 = 256. * 16. / 9.;
 
 pub struct CameraManagementPlugin;
@@ -40,6 +42,8 @@ impl Plugin for CameraManagementPlugin {
                     attach_player_camera_to_player,
                     autoscroll_camera.after(loop_player),
                     loop_main_cameras,
+                    spawn_hud,
+                    update_hud,
                     dim_camera
                         .before(loop_main_cameras)
                         .before(autoscroll_camera),
@@ -142,6 +146,8 @@ pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
 pub const MIDGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(3);
 
+pub const HUD_RENDER_LAYER: RenderLayers = RenderLayers::layer(5);
+
 #[derive(Component)]
 struct ParallaxCoefficient(f32);
 
@@ -166,6 +172,9 @@ struct DimCameraMarker;
 
 #[derive(Component)]
 struct DimMeshMarker;
+
+#[derive(Component)]
+pub struct HudCameraMarker;
 
 fn cleanup_cameras(
     query: Query<Entity, Or<(With<CameraMarker>, With<PlayerCameraMarker>)>>,
@@ -316,6 +325,17 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
                 BACKGROUND_PARALLAX_COEFFICIENT,
             ));
 
+            let mut hud_camera = Camera2dBundle::default();
+            hud_camera.projection.scaling_mode = scaling_mode;
+            hud_camera.camera.order = 5;
+            commands.spawn((
+                hud_camera,
+                HudCameraMarker,
+                CameraMarker,
+                HUD_RENDER_LAYER,
+                FOREGROUND_PARALLAX_COEFFICIENT,
+            ));
+
             return;
         }
     }
@@ -417,7 +437,6 @@ fn dim_camera(
                 player_transform.translation += delta;
                 player_camera_transform.translation += delta;
                 for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                    dbg!(parallax_coefficient.0 * delta);
                     camera_transform.translation += parallax_coefficient.0 * delta;
 
                     if camera_offset < 0. {
