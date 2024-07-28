@@ -15,7 +15,6 @@ pub struct LeverMarker;
 #[derive(Component, Debug)]
 pub struct LeverState {
     id: usize,
-    activated: bool,
 }
 
 #[derive(Component, Debug)]
@@ -35,10 +34,7 @@ impl Default for LeverBundle {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             lever_marker: LeverMarker,
-            lever_state: LeverState {
-                id: 0,
-                activated: false,
-            },
+            lever_state: LeverState { id: 0 },
         }
     }
 }
@@ -46,7 +42,6 @@ impl Default for LeverBundle {
 fn lever_initial_state(ei: &EntityInstance) -> LeverState {
     LeverState {
         id: *ei.get_int_field("lever_id").unwrap() as usize,
-        activated: *ei.get_bool_field("activated").unwrap(),
     }
 }
 
@@ -73,7 +68,7 @@ pub fn check_lever_interacting(
     mut query_lever_sensor: Query<(&mut Parent, Entity), With<LeverSensorMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_lever: Query<&mut LeverState>,
-    query_platforms: Query<(&PlatformInfo, Entity), With<PlatformMarker>>,
+    mut query_platforms: Query<(&mut PlatformInfo, Entity), With<PlatformMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -91,10 +86,10 @@ pub fn check_lever_interacting(
         }
 
         println!("SWITCHING LEVER {}", lever_state.id);
-        lever_state.activated = !lever_state.activated;
-        for (platform_info, platform) in query_platforms.iter() {
+        for (mut platform_info, platform) in query_platforms.iter_mut() {
             if platform_info.id == lever_state.id {
-                if lever_state.activated {
+                platform_info.active = !platform_info.active;
+                if platform_info.active {
                     add_platform_colliders(&mut commands, platform);
                 } else {
                     commands.entity(platform).despawn_descendants();

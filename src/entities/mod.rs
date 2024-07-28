@@ -10,6 +10,7 @@ mod jump_token;
 mod key;
 mod lever;
 mod platform;
+mod wall_jump;
 
 use clock::{animate_clock, ClockBundle};
 use door::{add_door_interaction, check_door_interacting, DoorBundle};
@@ -19,6 +20,7 @@ use jump_token::{add_jump_token_sensor, check_jump_token_acquire, JumpTokenBundl
 use key::{add_key_sensor, check_key_interacting, KeyBundle};
 use lever::{add_lever_interaction, check_lever_interacting, LeverBundle};
 use platform::{insert_platform_colliders, PlatformBundle};
+use wall_jump::{add_wall_jump_sensor, check_wall_jump_acquire, WallJumpBundle};
 
 pub struct EntityManagementPlugin;
 
@@ -32,6 +34,7 @@ impl Plugin for EntityManagementPlugin {
             .register_ldtk_entity::<LeverBundle>("Lever")
             .register_ldtk_entity::<PlatformBundle>("LeverPlatform")
             .register_ldtk_entity::<GoalBundle>("Goal")
+            .register_ldtk_entity::<WallJumpBundle>("WallJump")
             .add_systems(
                 Update,
                 (
@@ -49,6 +52,8 @@ impl Plugin for EntityManagementPlugin {
                     insert_platform_colliders,
                     add_goal_sensor,
                     check_goal_reached,
+                    add_wall_jump_sensor,
+                    check_wall_jump_acquire,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );

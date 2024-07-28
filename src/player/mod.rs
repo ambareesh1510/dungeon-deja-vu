@@ -119,8 +119,8 @@ impl Default for PlayerBundle {
                 extra_jumps: 0,
                 air_jumps: 0,
                 wall_jump_cd: [
-                    Timer::from_seconds(1.5, TimerMode::Once),
-                    Timer::from_seconds(1.5, TimerMode::Once),
+                    Timer::from_seconds(0.8, TimerMode::Once),
+                    Timer::from_seconds(0.8, TimerMode::Once),
                 ],
                 on_wall: [false; 2],
                 has_wall_jump: false,
@@ -325,7 +325,7 @@ fn move_player(
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if keys.pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
+        if keys.just_pressed(KeyCode::ArrowUp) && player_status.jump_cooldown.finished() {
             let mut can_jump = false;
             if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling {
                 // jump from floor
@@ -337,6 +337,8 @@ fn move_player(
                 // wall jump from left wall
                 can_jump = true;
                 player_inventory.wall_jump_cd[0].reset();
+                // if they use the wall jump, reset their double jump
+                player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.has_wall_jump
                 && player_inventory.on_wall[1]
                 && player_inventory.wall_jump_cd[1].finished()
@@ -344,6 +346,8 @@ fn move_player(
                 // wall jump from right wall
                 can_jump = true;
                 player_inventory.wall_jump_cd[1].reset();
+                // if they use the wall jump, reset their double jump
+                player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.extra_jumps >= 1 {
                 // jump in air with double jump
                 can_jump = true;
@@ -362,8 +366,8 @@ fn move_player(
         }
 
         // allow player to slide down walls if they have wall jump
-        if on_wall && player_inventory.has_wall_jump && player_velocity.linvel.y < -45. {
-            player_velocity.linvel.y = -45.;
+        if on_wall && player_inventory.has_wall_jump && player_velocity.linvel.y < -75. {
+            player_velocity.linvel.y = -75.;
         }
 
         player_velocity.linvel.x /= 1.6;
