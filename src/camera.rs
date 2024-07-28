@@ -82,11 +82,14 @@ fn cleanup_cameras(
     }
 }
 
-fn setup_dim_mesh(mut commands: Commands) {
+fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
+    let Ok(window) = query_window.get_single() else {
+        return;
+    };
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(3000., 1000.)),
+                custom_size: Some(Vec2::new(window.width(), window.height())),
                 color: Color::srgba(0.0, 0.0, 0.0, 1.0),
                 ..default()
             },
@@ -251,6 +254,7 @@ fn dim_camera(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
+    query_window: Query<&Window>,
 ) {
     let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
         query_player.get_single_mut()
@@ -263,6 +267,11 @@ fn dim_camera(
     let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
         return;
     };
+    let Ok(window) = query_window.get_single() else {
+        return;
+    };
+
+    dim_sprite.custom_size = Some(Vec2::new(window.width(), window.height()));
     let color_as_linear = dim_sprite.color.to_linear();
     let mut alpha = color_as_linear.alpha();
     if player_status.level_finished || player_status.dead {
