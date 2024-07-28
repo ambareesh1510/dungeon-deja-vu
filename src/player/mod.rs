@@ -300,7 +300,7 @@ fn move_player(
         mut player_state,
     )) = query_player.get_single_mut()
     {
-        println!("state: {:?}", *player_state);
+        
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
             // player_status.grounded = false;
@@ -401,7 +401,6 @@ fn move_player(
                 if wall_jump {
                     *player_state = PlayerState::SlidingToJump;
                 } else {
-                    println!("asldkfjhalskjdfhlaksjdlkasjhflkasjhflk");
                     *player_state = PlayerState::Jumping;
                 }
                 player_status.jump_cooldown.reset();
