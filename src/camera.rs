@@ -12,7 +12,8 @@ use bevy_rapier2d::prelude::Velocity;
 
 use crate::state::LevelLoadingState;
 
-const CAMERA_UNIT_HEIGHT: f32 = 250.;
+const CAMERA_UNIT_HEIGHT: f32 = 256.;
+const CAMERA_UNIT_WIDTH: f32 = 256. * 16. / 9.;
 
 pub struct CameraManagementPlugin;
 
@@ -141,7 +142,7 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added<LayerMetadata>>) {
-    let scaling_mode = ScalingMode::FixedVertical(CAMERA_UNIT_HEIGHT);
+    let scaling_mode = ScalingMode::FixedHorizontal(CAMERA_UNIT_WIDTH);
     for level in query_level.iter() {
         if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
             let level_width = level.c_wid as f32 * 16.;
@@ -324,7 +325,7 @@ fn dim_camera(
 // TODO: make this use delta time!
 fn attach_player_camera_to_player(
     mut query_player_camera: Query<
-        &mut Transform,
+        (&Camera, &GlobalTransform, &mut Transform),
         (With<PlayerCameraMarker>, Without<PlayerMarker>),
     >,
     mut query_main_camera: Query<
@@ -338,21 +339,34 @@ fn attach_player_camera_to_player(
 ) {
     // the lowest possible position of the camera such that the part outside of the level is not
     // shown
-    let low_pos = CAMERA_UNIT_HEIGHT / 2.;
-    if let (Ok(mut player_camera_transform), Ok(player_transform)) = (
-        query_player_camera.get_single_mut(),
-        query_player.get_single(),
-    ) {
-        let delta = (player_transform.translation.y - 10.0) - player_camera_transform.translation.y;
-        player_camera_transform.translation.y += delta / 3.;
-        if player_camera_transform.translation.y < low_pos {
-            player_camera_transform.translation.y = low_pos;
-        }
-        for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
-            main_camera_transform.translation.y += parallax_coefficient.0 * delta / 3.;
-            if main_camera_transform.translation.y < low_pos {
-                main_camera_transform.translation.y = low_pos;
-            }
+    let Ok((player_camera, player_camera_global_transform, mut player_camera_transform)) =
+        query_player_camera.get_single_mut()
+    else {
+        return;
+    };
+    let Ok(player_transform) = query_player.get_single() else {
+        return;
+    };
+    let screen_tl = player_camera
+        .viewport_to_world_2d(player_camera_global_transform, Vec2::new(0., 0.))
+        .unwrap();
+    let screen_br = player_camera
+        .viewport_to_world_2d(
+            player_camera_global_transform,
+            player_camera.logical_viewport_size().unwrap(),
+        )
+        .unwrap();
+    // the height in world units the camera can see, divided by 2
+    let low_pos = (screen_tl.y - screen_br.y) / 2.;
+    let delta = (player_transform.translation.y - 10.0) - player_camera_transform.translation.y;
+    player_camera_transform.translation.y += delta / 3.;
+    if player_camera_transform.translation.y < low_pos {
+        player_camera_transform.translation.y = low_pos;
+    }
+    for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
+        main_camera_transform.translation.y += parallax_coefficient.0 * delta / 3.;
+        if main_camera_transform.translation.y < low_pos {
+            main_camera_transform.translation.y = low_pos;
         }
     }
 }
