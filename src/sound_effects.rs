@@ -23,6 +23,7 @@ pub enum SoundEffectType {
     Lever,
     Key,
     Death,
+    WaterDeath,
 }
 
 #[derive(Component)]
@@ -31,7 +32,7 @@ struct BackgroundMusicMarker;
 #[derive(Event)]
 pub struct SoundEffectEvent(pub SoundEffectType);
 
-const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 7] = [
+const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 8] = [
     (SoundEffectType::Jump, "sound_effects/jump.wav"),
     (
         SoundEffectType::SmallPowerup,
@@ -42,6 +43,7 @@ const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 7] = [
     (SoundEffectType::Lever, "sound_effects/lever_toggle.wav"),
     (SoundEffectType::Key, "sound_effects/key.wav"),
     (SoundEffectType::Death, "sound_effects/death.wav"),
+    (SoundEffectType::WaterDeath, "sound_effects/water.wav"),
 ];
 
 fn play_sound_effect(

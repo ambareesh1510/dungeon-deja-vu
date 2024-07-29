@@ -556,6 +556,7 @@ pub fn kill_player(
     };
 
     let mut kill_player = false;
+    let mut spike_kill = false;
     if keys.just_pressed(KeyCode::KeyR) {
         kill_player = true;
     } else {
@@ -570,13 +571,14 @@ pub fn kill_player(
                     spike_info.is_blue = true;
                     *texture_index = TileTextureIndex(texture_index.0 + 1);
                 }
+                spike_kill = true;
                 kill_player = true;
             }
         }
     }
     if kill_player {
         if !player_status.dead {
-            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Death));
+            sound_effect_event_writer.send(SoundEffectEvent(if spike_kill { SoundEffectType::Death } else { SoundEffectType::WaterDeath }));
         }
         player_status.dead = true;
         // time.pause();
