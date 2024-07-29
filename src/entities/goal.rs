@@ -12,7 +12,7 @@ pub struct GoalSensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct GoalBundle {
-    #[sprite_sheet_bundle(no_grid)]
+    #[sprite_sheet_bundle("../assets/goal.png", 48, 32, 1, 1, 0, 0, 1)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     goal_marker: GoalMarker,
 }

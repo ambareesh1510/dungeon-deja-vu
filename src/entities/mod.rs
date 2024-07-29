@@ -23,7 +23,7 @@ use jump_token::{
     add_jump_token_sensor, animate_jump_token, attach_timer, check_jump_token_acquire,
     JumpTokenBundle,
 };
-use key::{add_key_sensor, check_key_interacting, KeyBundle};
+use key::{add_key_sensor, animate_key, check_key_interacting, KeyBundle};
 use lever::{add_lever_interaction, animate_lever, check_lever_interacting, LeverBundle};
 use platform::{insert_platform_colliders, PlatformBundle};
 use sign::{add_sign_interaction, check_sign_interacting, SignBundle};
@@ -73,6 +73,7 @@ impl Plugin for EntityManagementPlugin {
                         check_wall_jump_acquire,
                         add_sign_interaction,
                         check_sign_interacting,
+                        animate_key,
                     ),
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),

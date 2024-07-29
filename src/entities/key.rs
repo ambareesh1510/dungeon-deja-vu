@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -12,9 +14,10 @@ pub struct KeySensorMarker;
 
 #[derive(Bundle, LdtkEntity)]
 pub struct KeyBundle {
-    #[sprite_sheet_bundle]
+    #[sprite_sheet_bundle("../assets/spritesheets/key.png", 16, 16, 8, 1, 0, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     key_marker: KeyMarker,
+    animation_timer: AnimationTimer,
 }
 
 impl Default for KeyBundle {
@@ -22,10 +25,27 @@ impl Default for KeyBundle {
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             key_marker: KeyMarker,
+            animation_timer: AnimationTimer(Timer::new(
+                Duration::from_millis(100),
+                TimerMode::Repeating,
+            )),
         }
     }
 }
 
+pub fn animate_key( time: Res<Time>,
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<KeyMarker>>) {
+    let durations = [450, 250, 200, 250, 450, 250, 200, 250];
+
+    for (mut timer, mut sprite) in query.iter_mut() {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            sprite.index = (sprite.index + 1) % 8;
+            timer.set_duration(Duration::from_millis(durations[sprite.index as usize]));
+        }
+
+    }
+}
 pub fn add_key_sensor(mut commands: Commands, query_keys: Query<Entity, Added<KeyMarker>>) {
     for key in query_keys.iter() {
         commands.entity(key).with_children(|parent| {
