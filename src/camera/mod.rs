@@ -100,6 +100,7 @@ fn pan_camera(
     >,
     time: Res<Time>,
 ) {
+    let delta_time_coeff = time.delta_seconds() * 60.;
     let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
         return;
     };
@@ -113,9 +114,9 @@ fn pan_camera(
         CameraPanningState::PanningToGoal => {
             let target = goal_transform.translation;
             let delta = target - player_camera_transform.translation;
-            player_camera_transform.translation.x += delta.x / 30.;
+            player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
+                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtGoal;
@@ -123,10 +124,10 @@ fn pan_camera(
         }
         CameraPanningState::PanningToPlayer => {
             let delta = (player_transform.translation) - player_camera_transform.translation;
-            player_camera_transform.translation.x += delta.x / 30.;
+            player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
                 if parallax_coefficient.0 == 0.25 {}
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
+                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtPlayer;
@@ -484,6 +485,7 @@ fn attach_player_camera_to_player(
             Without<PlayerCameraMarker>,
         ),
     >,
+    time: Res<Time>,
 ) {
     // if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer && camera_panning_state.panning_state != CameraPanningState::PanningToPlayer {
     if camera_panning_state.panning_state == CameraPanningState::WaitingAtGoal {
@@ -496,6 +498,7 @@ fn attach_player_camera_to_player(
     } else {
         30.
     };
+    let delta_time_coeff = time.delta_seconds() * 60.;
 
     let Ok((player_camera, player_camera_global_transform, mut player_camera_transform)) =
         query_player_camera.get_single_mut()
@@ -530,14 +533,14 @@ fn attach_player_camera_to_player(
     // the height in world units the camera can see, divided by 2
     let low_pos = (screen_tl.y - screen_br.y) / 2.;
     let delta = (target.y) - player_camera_transform.translation.y;
-    player_camera_transform.translation.y += delta / motion_factor;
+    player_camera_transform.translation.y += delta / motion_factor * delta_time_coeff;
     let mut is_at_low = false;
     if player_camera_transform.translation.y < low_pos {
         player_camera_transform.translation.y = low_pos;
         is_at_low = true;
     }
     for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
-        main_camera_transform.translation.y += parallax_coefficient.0 * delta / motion_factor;
+        main_camera_transform.translation.y += parallax_coefficient.0 * delta / motion_factor * delta_time_coeff;
         if is_at_low {
             main_camera_transform.translation.y = low_pos * parallax_coefficient.0;
         }
