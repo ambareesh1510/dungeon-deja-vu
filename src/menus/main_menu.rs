@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::state::{LevelLoadingState, TargetLevel};
 use super::{DeathCount, MenuCameraMarker, SpeedrunTimer};
+use crate::state::{LevelLoadingState, TargetLevel};
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct MainMenuNode;
@@ -12,7 +12,9 @@ pub struct StartGameButtonMarker;
 pub struct LevelSelectButtonMarker;
 
 pub fn create_main_menu(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default()).insert(MenuCameraMarker);
+    commands
+        .spawn(Camera2dBundle::default())
+        .insert(MenuCameraMarker);
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -86,18 +88,11 @@ pub fn create_main_menu(mut commands: Commands) {
                     ));
                 });
         });
-
 }
 
 pub fn handle_main_menu_clicks(
-    start_game_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<StartGameButtonMarker>),
-    >,
-    level_select_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<LevelSelectButtonMarker>),
-    >,
+    start_game_query: Query<&Interaction, (Changed<Interaction>, With<StartGameButtonMarker>)>,
+    level_select_query: Query<&Interaction, (Changed<Interaction>, With<LevelSelectButtonMarker>)>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut speedrun_timer: ResMut<SpeedrunTimer>,
     mut target_level: ResMut<TargetLevel>,

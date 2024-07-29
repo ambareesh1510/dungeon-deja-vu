@@ -5,7 +5,10 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::prelude::*;
 
-use crate::{player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker}, sound_effects::{SoundEffectEvent, SoundEffectType}};
+use crate::{
+    player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker},
+    sound_effects::{SoundEffectEvent, SoundEffectType},
+};
 
 #[derive(Component, Debug)]
 pub struct JumpTokenMarker;

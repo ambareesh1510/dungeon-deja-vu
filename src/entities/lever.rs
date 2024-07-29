@@ -6,7 +6,8 @@ use bevy_rapier2d::prelude::*;
 
 use crate::{
     entities::platform::add_platform_colliders,
-    player::{animation::AnimationTimer, PlayerColliderMarker, SetCheckpointEvent}, sound_effects::{SoundEffectEvent, SoundEffectType},
+    player::{animation::AnimationTimer, PlayerColliderMarker, SetCheckpointEvent},
+    sound_effects::{SoundEffectEvent, SoundEffectType},
 };
 
 use super::{

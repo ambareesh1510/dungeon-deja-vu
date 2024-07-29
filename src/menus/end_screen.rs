@@ -1,12 +1,18 @@
-use bevy::prelude::*;
-use crate::state::LevelLoadingState;
 use super::{level_select::BackButtonMarker, DeathCount, MenuCameraMarker, SpeedrunTimer};
+use crate::state::LevelLoadingState;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct EndScreenNode;
 
-pub fn create_end_screen_menu(mut commands: Commands, speedrun_timer: Res<SpeedrunTimer>, death_count: Res<DeathCount>) {
-    commands.spawn(Camera2dBundle::default()).insert(MenuCameraMarker);
+pub fn create_end_screen_menu(
+    mut commands: Commands,
+    speedrun_timer: Res<SpeedrunTimer>,
+    death_count: Res<DeathCount>,
+) {
+    commands
+        .spawn(Camera2dBundle::default())
+        .insert(MenuCameraMarker);
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -40,7 +46,11 @@ pub fn create_end_screen_menu(mut commands: Commands, speedrun_timer: Res<Speedr
                 })
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        format!("Congratulations! You finished the game in {} seconds with {} deaths.", speedrun_timer.0.elapsed_secs(), death_count.0),
+                        format!(
+                            "Congratulations! You finished the game in {} seconds with {} deaths.",
+                            speedrun_timer.0.elapsed_secs(),
+                            death_count.0
+                        ),
                         TextStyle {
                             // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 40.0,
@@ -79,14 +89,10 @@ pub fn create_end_screen_menu(mut commands: Commands, speedrun_timer: Res<Speedr
                     ));
                 });
         });
-
 }
 
 pub fn handle_end_screen_clicks(
-    back_button_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<BackButtonMarker>),
-    >,
+    back_button_query: Query<&Interaction, (Changed<Interaction>, With<BackButtonMarker>)>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
 ) {
     for interaction in back_button_query.iter() {

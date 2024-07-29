@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent}, sound_effects::{SoundEffectEvent, SoundEffectType}};
+use crate::{
+    player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent},
+    sound_effects::{SoundEffectEvent, SoundEffectType},
+};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;

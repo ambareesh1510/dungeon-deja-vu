@@ -1,5 +1,12 @@
 use crate::{
-    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, menus::DeathCount, player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
+    entities::{
+        goal::GoalMarker,
+        jump_token::{JumpTokenMarker, JumpTokenStatus},
+    },
+    level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
+    menus::DeathCount,
+    player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
+    state::TargetLevel,
 };
 use bevy::{
     prelude::*,
@@ -250,7 +257,10 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn cleanup_background(mut commands: Commands, query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>) {
+fn cleanup_background(
+    mut commands: Commands,
+    query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>,
+) {
     for entity in query_background.iter() {
         commands.entity(entity).despawn_recursive();
     }

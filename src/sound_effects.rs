@@ -25,7 +25,10 @@ pub struct SoundEffectEvent(pub SoundEffectType);
 
 const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 7] = [
     (SoundEffectType::Jump, "sound_effects/jump.wav"),
-    (SoundEffectType::SmallPowerup, "sound_effects/small_powerup.wav"),
+    (
+        SoundEffectType::SmallPowerup,
+        "sound_effects/small_powerup.wav",
+    ),
     (SoundEffectType::BigPowerup, "sound_effects/big_powerup.wav"),
     (SoundEffectType::Door, "sound_effects/door_open.wav"),
     (SoundEffectType::Lever, "sound_effects/lever_toggle.wav"),

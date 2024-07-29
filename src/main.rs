@@ -1,22 +1,24 @@
 mod camera;
 mod entities;
 mod level;
-mod player;
-mod state;
 mod menus;
+mod player;
 mod sound_effects;
+mod state;
 
 use bevy::{
-    asset::AssetMetaCheck, ecs::schedule::{LogLevel, ScheduleBuildSettings}, prelude::*
+    asset::AssetMetaCheck,
+    ecs::schedule::{LogLevel, ScheduleBuildSettings},
+    prelude::*,
 };
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
 use entities::EntityManagementPlugin;
 use level::LevelManagementPlugin;
-use player::PlayerManagementPlugin;
-use state::StateManagementPlugin;
 use menus::MenuManagementPlugin;
+use player::PlayerManagementPlugin;
 use sound_effects::SoundEffectsManagementPlugin;
+use state::StateManagementPlugin;
 
 fn main() {
     App::new()
@@ -27,11 +29,13 @@ fn main() {
                 ..default()
             });
         })
-
-        .add_plugins(DefaultPlugins
-            .set( ImagePlugin::default_nearest())
-            .set(AssetPlugin { meta_check: AssetMetaCheck::Never,..default()})
-            
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                }),
         )
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         // .add_plugins(RapierDebugRenderPlugin::default())
