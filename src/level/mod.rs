@@ -93,7 +93,8 @@ fn cleanup_level_objects(
     }
 }
 
-pub const LEVEL_IIDS: [&str; 5] = [
+pub const LEVEL_IIDS: [&str; 6] = [
+    "d509f450-4ce0-11ef-bfc4-339ca4a6f158",
     "584033f0-25d0-11ef-8b42-1596277d2df3",
     "410524d0-25d0-11ef-b3d7-db494d819bf6",
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
@@ -214,9 +215,19 @@ impl Default for TerrainBundle {
 #[derive(Component)]
 pub struct BackwardsBarrier;
 
-fn spawn_backwards_barrier(mut commands: Commands) {
+fn spawn_backwards_barrier(
+    mut commands: Commands,
+    query_level: Query<&LayerMetadata, With<LayerMetadata>>,
+) {
+    let mut level_height = 0.;
+    for level in query_level.iter() {
+        if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+            level_height = level.c_hei as f32 * 16.;
+        }
+    }
+
     commands
-        .spawn((Collider::cuboid(1., 1000.), BackwardsBarrier))
+        .spawn((Collider::cuboid(1., level_height), BackwardsBarrier))
         .insert(TransformBundle::from_transform(Transform::from_xyz(
             0., 0., 0.,
         )));
