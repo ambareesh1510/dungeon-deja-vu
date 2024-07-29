@@ -38,7 +38,6 @@ pub fn create_end_screen_menu(mut commands: Commands, speedrun_timer: Res<Speedr
                     background_color: Color::BLACK.into(),
                     ..default()
                 })
-                .insert(BackButtonMarker)
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         format!("Congratulations! You finished the game in {} seconds with {} deaths.", speedrun_timer.0.elapsed_secs(), death_count.0),
