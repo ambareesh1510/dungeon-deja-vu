@@ -32,8 +32,8 @@ pub fn create_end_screen_menu(
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(90.0),
+                        height: Val::Percent(35.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -65,8 +65,8 @@ pub fn create_end_screen_menu(
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(90.0),
+                        height: Val::Percent(25.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,

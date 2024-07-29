@@ -36,6 +36,7 @@ impl Plugin for CameraManagementPlugin {
                 panning_state: CameraPanningState::PanningToGoal,
                 panning_timer: Timer::from_seconds(0.3, TimerMode::Once),
             })
+            .add_systems(Update, manage_dim_mesh)
             .add_systems(OnEnter(LevelLoadingState::Loaded), spawn_background)
             .add_systems(OnExit(LevelLoadingState::Loaded), cleanup_background)
             .add_systems(
@@ -208,6 +209,16 @@ fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
     let mut dim_camera = Camera2dBundle::default();
     dim_camera.camera.order = 10;
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
+}
+
+fn manage_dim_mesh(query_window: Query<&Window>, mut query_dim_mesh: Query<&mut Sprite, With<DimMeshMarker>>) {
+    let Ok(mut dim_mesh_sprite) = query_dim_mesh.get_single_mut() else {
+        return;
+    };
+    let Ok(window) = query_window.get_single() else {
+        return;
+    };
+    dim_mesh_sprite.custom_size = Some(Vec2::new(window.width(), window.height()));
 }
 
 #[derive(Component)]

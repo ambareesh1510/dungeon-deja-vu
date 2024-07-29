@@ -33,8 +33,37 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(125.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(25.0),
+                        border: UiRect::all(Val::Px(5.0)),
+                        // horizontally center child text
+                        justify_content: JustifyContent::Center,
+                        // vertically center child text
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    // border_color: BorderColor(Color::BLACK),
+                    // border_radius: BorderRadius::MAX,
+                    background_color: Color::BLACK.into(),
+                    ..default()
+                })
+                // .insert(StartGameButtonMarker)
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Dungeon\nDéjà Vu",
+                        TextStyle {
+                            font: monocraft.clone(),
+                            font_size: 60.0,
+                            color: Color::srgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ));
+                });
+            parent
+                .spawn(ButtonBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(20.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -62,8 +91,8 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(20.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,

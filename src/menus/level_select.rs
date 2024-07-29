@@ -41,8 +41,8 @@ pub fn create_level_select_menu(
                 parent
                     .spawn(ButtonBundle {
                         style: Style {
-                            width: Val::Px(550.0),
-                            height: Val::Px(85.0),
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(15.0),
                             border: UiRect::all(Val::Px(5.0)),
                             // horizontally center child text
                             justify_content: JustifyContent::Center,
@@ -79,8 +79,8 @@ pub fn create_level_select_menu(
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(20.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
