@@ -4,9 +4,12 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{
-    animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
-    SetCheckpointEvent,
+use crate::{
+    player::{
+        animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
+        SetCheckpointEvent,
+    },
+    sound_effects::{SoundEffectEvent, SoundEffectType},
 };
 
 #[derive(Component, Debug)]
@@ -73,6 +76,7 @@ pub fn check_double_jump_acquire(
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut q_double_jump: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut inventory) = query_player.get_single_mut() else {
         return;
@@ -84,6 +88,7 @@ pub fn check_double_jump_acquire(
     for (double_jump, dj_sensor_entity) in q_double_jump_sensor.iter_mut() {
         let dj_entity = q_double_jump.get_mut(double_jump.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, dj_sensor_entity) == Some(true) {
+            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::BigPowerup));
             inventory.max_extra_jumps += 1;
             println!("PLAYER EXTRA JUMPS {:?}", inventory.max_extra_jumps);
             commands.entity(dj_entity).despawn_recursive();

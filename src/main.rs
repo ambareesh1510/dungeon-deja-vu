@@ -3,6 +3,7 @@ mod entities;
 mod level;
 mod menus;
 mod player;
+mod sound_effects;
 mod state;
 
 use bevy::{
@@ -18,6 +19,7 @@ use entities::EntityManagementPlugin;
 use level::LevelManagementPlugin;
 use menus::MenuManagementPlugin;
 use player::PlayerManagementPlugin;
+use sound_effects::SoundEffectsManagementPlugin;
 use state::StateManagementPlugin;
 
 fn main() {
@@ -29,12 +31,15 @@ fn main() {
                 ..default()
             });
         })
+
+
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
                     ..default()
+
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
@@ -60,6 +65,7 @@ fn main() {
             EntityManagementPlugin,
             PlayerManagementPlugin,
             MenuManagementPlugin,
+            SoundEffectsManagementPlugin,
         ))
         .run();
 }

@@ -1,5 +1,12 @@
 use crate::{
-    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, menus::DeathCount, player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
+    entities::{
+        goal::GoalMarker,
+        jump_token::{JumpTokenMarker, JumpTokenStatus},
+    },
+    level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
+    menus::DeathCount,
+    player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
+    state::TargetLevel,
 };
 use bevy::{
     prelude::*,
@@ -34,7 +41,6 @@ impl Plugin for CameraManagementPlugin {
             .add_systems(
                 Update,
                 (
-                    // undim_camera,
                     pan_camera,
                     setup_camera,
                     attach_player_camera_to_player,
@@ -45,7 +51,8 @@ impl Plugin for CameraManagementPlugin {
                     show_textbox,
                     dim_camera
                         .before(loop_main_cameras)
-                        .before(autoscroll_camera),
+                        .before(autoscroll_camera)
+                        .after(kill_player),
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             )
@@ -250,7 +257,10 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn cleanup_background(mut commands: Commands, query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>) {
+fn cleanup_background(
+    mut commands: Commands,
+    query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>,
+) {
     for entity in query_background.iter() {
         commands.entity(entity).despawn_recursive();
     }

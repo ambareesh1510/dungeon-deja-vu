@@ -7,6 +7,7 @@ pub mod animation;
 
 use crate::camera::{CameraPanning, CameraPanningState, PlayerCameraMarker, PLAYER_RENDER_LAYER};
 use crate::level::{BackwardsBarrier, KillPlayerMarker};
+use crate::sound_effects::{SoundEffectEvent, SoundEffectType};
 use crate::state::LevelLoadingState;
 
 use animation::{animate_player, AnimationInfo, AnimationTimer};
@@ -329,6 +330,7 @@ fn move_player(
     camera_panning_state: Res<CameraPanning>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     if let Ok((
         mut player_velocity,
@@ -454,6 +456,7 @@ fn move_player(
 
             // ugly but i wrote it like this so i can print debug messages
             if can_jump {
+                sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Jump));
                 player_velocity.linvel.y = 130.;
                 if wall_jump {
                     *player_state = PlayerState::SlidingToJump;
@@ -532,12 +535,13 @@ fn set_player_checkpoint(
     }
 }
 
-fn kill_player(
+pub fn kill_player(
     mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     query_hazards: Query<Entity, With<KillPlayerMarker>>,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut player_status) = query_player.get_single_mut() else {
         return;
@@ -557,6 +561,9 @@ fn kill_player(
         }
     }
     if kill_player {
+        if !player_status.dead {
+            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Death));
+        }
         player_status.dead = true;
         // time.pause();
     }

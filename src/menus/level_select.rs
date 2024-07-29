@@ -1,6 +1,9 @@
-use bevy::prelude::*;
-use crate::{level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, state::{LevelLoadingState, TargetLevel}};
 use super::MenuCameraMarker;
+use crate::{
+    level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
+    state::{LevelLoadingState, TargetLevel},
+};
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct LevelSelectMenuNode;
@@ -11,8 +14,13 @@ pub struct LevelButtonMarker(usize);
 #[derive(Component)]
 pub struct BackButtonMarker;
 
-pub fn create_level_select_menu(mut commands: Commands, last_accessible_level: Res<LastAccessibleLevel>) {
-    commands.spawn(Camera2dBundle::default()).insert(MenuCameraMarker);
+pub fn create_level_select_menu(
+    mut commands: Commands,
+    last_accessible_level: Res<LastAccessibleLevel>,
+) {
+    commands
+        .spawn(Camera2dBundle::default())
+        .insert(MenuCameraMarker);
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -48,7 +56,15 @@ pub fn create_level_select_menu(mut commands: Commands, last_accessible_level: R
                     .insert(LevelButtonMarker(i))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            format!("Level {} {}", i + 1, if i > last_accessible_level.0 { "[LOCKED]" } else { "" }),
+                            format!(
+                                "Level {} {}",
+                                i + 1,
+                                if i > last_accessible_level.0 {
+                                    "[LOCKED]"
+                                } else {
+                                    ""
+                                }
+                            ),
                             TextStyle {
                                 font_size: 40.0,
                                 color: Color::srgb(0.9, 0.9, 0.9),
@@ -87,18 +103,11 @@ pub fn create_level_select_menu(mut commands: Commands, last_accessible_level: R
                     ));
                 });
         });
-
 }
 
 pub fn handle_level_select_menu_clicks(
-    level_select_query: Query<
-        (&Interaction, &LevelButtonMarker),
-        Changed<Interaction>,
-    >,
-    back_button_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<BackButtonMarker>),
-    >,
+    level_select_query: Query<(&Interaction, &LevelButtonMarker), Changed<Interaction>>,
+    back_button_query: Query<&Interaction, (Changed<Interaction>, With<BackButtonMarker>)>,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut from_level_select: ResMut<FromLevelSelect>,
     mut target_level: ResMut<TargetLevel>,
