@@ -238,14 +238,18 @@ pub fn update_hud(
         last_ind += 1;
     }
 
+    for _ in 0..player_inventory.num_keys {
+        player_hud.push(HudIcon::Key);
+        last_ind += 1;
+    }
+
     for _ in 0..player_inventory.air_jumps {
         player_hud.push(HudIcon::JumpToken);
         last_ind += 1;
     }
 
-    for _ in 0..player_inventory.num_keys {
-        player_hud.push(HudIcon::Key);
-        last_ind += 1;
+    if last_ind < 2 {
+        last_ind = 2;
     }
 
     while player_hud.len() < MAX_HUD_ICONS {
