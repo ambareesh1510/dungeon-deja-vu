@@ -1,10 +1,11 @@
-use bevy::prelude::*;
+use bevy::{audio::PlaybackMode, prelude::*};
 
 pub struct SoundEffectsManagementPlugin;
 
 impl Plugin for SoundEffectsManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SoundEffectEvent>()
+            .add_systems(Startup, start_music)
             .add_systems(Update, play_sound_effect);
     }
 }
@@ -51,4 +52,14 @@ fn play_sound_effect(
             }
         }
     }
+}
+
+fn start_music(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(AudioBundle {
+        source: asset_server.load("music/far_from_shore.wav"),
+        settings: PlaybackSettings {
+            mode: PlaybackMode::Loop,
+            ..default()
+        }
+    });
 }
