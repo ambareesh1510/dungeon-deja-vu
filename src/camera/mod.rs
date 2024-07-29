@@ -150,15 +150,12 @@ const PLAYER_CAMERA_ORDER: isize = 1;
 
 pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
-pub const MIDGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(3);
-
 pub const HUD_RENDER_LAYER: RenderLayers = RenderLayers::layer(5);
 
 #[derive(Component)]
 struct ParallaxCoefficient(f32);
 
 const FOREGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(1.);
-const MIDGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.35);
 const BACKGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.25);
 
 #[derive(Component)]
@@ -221,10 +218,7 @@ struct MidgroundMarker;
 fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     let background_sprite_handle = asset_server.load("backgroundwindows.png");
     // let midground_sprite_handle = asset_server.load("backgroundpillars.png");
-    let pillar_intact = asset_server.load("pillar_intact.png");
-    let pillar_broken = asset_server.load("pillar_broken.png");
     let background_sprite_size = 128.;
-    let midground_sprite_size = 128.;
     for x in -10..10 {
         for y in -10..10 {
             commands
@@ -240,20 +234,6 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(BACKGROUND_RENDER_LAYER)
                 .insert(BackgroundMarker);
         }
-    }
-    for x in 0..10 {
-        commands
-            .spawn(SpriteBundle {
-                transform: Transform::from_xyz(midground_sprite_size * x as f32, 0., 0.),
-                texture: if x % 4 == 2 {
-                    pillar_broken.clone()
-                } else {
-                    pillar_intact.clone()
-                },
-                ..default()
-            })
-            .insert(MIDGROUND_RENDER_LAYER)
-            .insert(MidgroundMarker);
     }
 }
 
@@ -300,29 +280,6 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
                 MainCameraMarker,
                 CameraMarker,
                 FOREGROUND_PARALLAX_COEFFICIENT,
-            ));
-
-            let mut midground_camera = Camera2dBundle::default();
-            midground_camera.projection.scaling_mode = scaling_mode;
-            midground_camera.camera.order = -2;
-            commands.spawn((
-                midground_camera,
-                BackgroundCameraMarker,
-                CameraMarker,
-                MIDGROUND_RENDER_LAYER,
-                MIDGROUND_PARALLAX_COEFFICIENT,
-            ));
-
-            let mut midground_camera_2 = Camera2dBundle::default();
-            midground_camera_2.projection.scaling_mode = scaling_mode;
-            midground_camera_2.transform.translation.x = level_width;
-            midground_camera_2.camera.order = -3;
-            commands.spawn((
-                midground_camera_2,
-                BackgroundCameraMarker,
-                CameraMarker,
-                MIDGROUND_RENDER_LAYER,
-                MIDGROUND_PARALLAX_COEFFICIENT,
             ));
 
             let mut background_camera = Camera2dBundle::default();
