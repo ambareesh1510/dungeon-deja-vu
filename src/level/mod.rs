@@ -74,7 +74,7 @@ fn inter_level_pause(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
 ) {
     let Ok((e, mut timer)) = query_timer.get_single_mut() else {
-        println!("did not find timer");
+        // println!("did not find timer");
         return;
     };
     if timer.0.finished() {

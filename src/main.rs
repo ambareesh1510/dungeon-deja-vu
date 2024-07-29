@@ -7,11 +7,7 @@ mod sound_effects;
 mod state;
 
 use bevy::{
-    asset::AssetMetaCheck,
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    ecs::schedule::{LogLevel, ScheduleBuildSettings},
-    prelude::*,
-    window::PresentMode,
+    asset::AssetMetaCheck, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, ecs::schedule::{LogLevel, ScheduleBuildSettings}, log::LogPlugin, prelude::*, window::PresentMode
 };
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
@@ -25,17 +21,21 @@ use state::StateManagementPlugin;
 fn main() {
     App::new()
         // Enable ambiguity warnings for the Update schedule
-        .edit_schedule(Startup, |schedule| {
-            schedule.set_build_settings(ScheduleBuildSettings {
-                ambiguity_detection: LogLevel::Warn,
-                ..default()
-            });
-        })
+        // .edit_schedule(Startup, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Warn,
+        //         ..default()
+        //     });
+        // })
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
+                    ..default()
+                })
+                .set(LogPlugin {
+                    level: bevy::log::Level::ERROR,
                     ..default()
                 })
                 .set(WindowPlugin {
@@ -50,8 +50,8 @@ fn main() {
                     }),
                     ..default()
                 }),
-            LogDiagnosticsPlugin::default(),
-            FrameTimeDiagnosticsPlugin,
+            // LogDiagnosticsPlugin::default(),
+            // FrameTimeDiagnosticsPlugin,
         ))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         // .add_plugins(RapierDebugRenderPlugin::default())
