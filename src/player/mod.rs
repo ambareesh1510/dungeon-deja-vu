@@ -1,12 +1,13 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_ecs_ldtk::prelude::*;
+use bevy_ecs_tilemap::tiles::TileTextureIndex;
 use bevy_rapier2d::prelude::*;
 use std::time::Duration;
 
 pub mod animation;
 
 use crate::camera::{CameraPanning, CameraPanningState, PlayerCameraMarker, PLAYER_RENDER_LAYER};
-use crate::level::{BackwardsBarrier, KillPlayerMarker};
+use crate::level::{BackwardsBarrier, KillPlayerMarker, SpikeInfo, SpikeMarker};
 use crate::sound_effects::{SoundEffectEvent, SoundEffectType};
 use crate::state::LevelLoadingState;
 
@@ -539,6 +540,10 @@ pub fn kill_player(
     mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     query_hazards: Query<Entity, With<KillPlayerMarker>>,
+    mut query_spike_hazards: Query<
+        (&mut SpikeInfo, Entity, &mut TileTextureIndex),
+        With<SpikeMarker>,
+    >,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
     mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
@@ -556,6 +561,15 @@ pub fn kill_player(
     } else {
         for hazard in query_hazards.iter() {
             if rapier_context.intersection_pair(player_collider, hazard) == Some(true) {
+                kill_player = true;
+            }
+        }
+        for (mut spike_info, spike_hazard, mut texture_index) in query_spike_hazards.iter_mut() {
+            if rapier_context.intersection_pair(player_collider, spike_hazard) == Some(true) {
+                if !spike_info.is_blue {
+                    spike_info.is_blue = true;
+                    *texture_index = TileTextureIndex(texture_index.0 + 1);
+                }
                 kill_player = true;
             }
         }
