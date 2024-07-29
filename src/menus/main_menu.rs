@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::state::{LevelLoadingState, TargetLevel};
-use super::{MenuCameraMarker, SpeedrunTimer};
+use super::{DeathCount, MenuCameraMarker, SpeedrunTimer};
 
 #[derive(Component)]
 pub struct MainMenuNode;
@@ -101,12 +101,14 @@ pub fn handle_main_menu_clicks(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut speedrun_timer: ResMut<SpeedrunTimer>,
     mut target_level: ResMut<TargetLevel>,
+    mut death_counter: ResMut<DeathCount>,
 ) {
     for interaction in start_game_query.iter() {
         if *interaction != Interaction::Pressed {
             return;
         }
         speedrun_timer.0.reset();
+        death_counter.0 = 0;
         target_level.0 = 0;
         next_state.set(LevelLoadingState::Loading);
     }
