@@ -11,10 +11,11 @@ pub struct StartGameButtonMarker;
 #[derive(Component)]
 pub struct LevelSelectButtonMarker;
 
-pub fn create_main_menu(mut commands: Commands) {
+pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(MenuCameraMarker);
+    let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -33,7 +34,7 @@ pub fn create_main_menu(mut commands: Commands) {
                 .spawn(ButtonBundle {
                     style: Style {
                         width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        height: Val::Px(125.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -51,7 +52,7 @@ pub fn create_main_menu(mut commands: Commands) {
                     parent.spawn(TextBundle::from_section(
                         "Start Game",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
@@ -80,7 +81,7 @@ pub fn create_main_menu(mut commands: Commands) {
                     parent.spawn(TextBundle::from_section(
                         "Level Select",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()

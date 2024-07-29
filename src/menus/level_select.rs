@@ -17,10 +17,12 @@ pub struct BackButtonMarker;
 pub fn create_level_select_menu(
     mut commands: Commands,
     last_accessible_level: Res<LastAccessibleLevel>,
+    asset_server: Res<AssetServer>,
 ) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(MenuCameraMarker);
+    let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -40,7 +42,7 @@ pub fn create_level_select_menu(
                     .spawn(ButtonBundle {
                         style: Style {
                             width: Val::Px(550.0),
-                            height: Val::Px(65.0),
+                            height: Val::Px(85.0),
                             border: UiRect::all(Val::Px(5.0)),
                             // horizontally center child text
                             justify_content: JustifyContent::Center,
@@ -66,6 +68,7 @@ pub fn create_level_select_menu(
                                 }
                             ),
                             TextStyle {
+                                font: monocraft.clone(),
                                 font_size: 40.0,
                                 color: Color::srgb(0.9, 0.9, 0.9),
                                 ..default()
@@ -95,7 +98,7 @@ pub fn create_level_select_menu(
                     parent.spawn(TextBundle::from_section(
                         "Back to main menu",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()

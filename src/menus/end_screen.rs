@@ -9,10 +9,12 @@ pub fn create_end_screen_menu(
     mut commands: Commands,
     speedrun_timer: Res<SpeedrunTimer>,
     death_count: Res<DeathCount>,
+    asset_server: Res<AssetServer>,
 ) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(MenuCameraMarker);
+    let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -47,12 +49,13 @@ pub fn create_end_screen_menu(
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         format!(
-                            "Congratulations! You finished the game in {} seconds with {} deaths.",
-                            speedrun_timer.0.elapsed_secs(),
+                            "Congratulations! You finished the game in {}m {:.2}s with {} deaths.",
+                            (speedrun_timer.0.elapsed_secs() / 60.) as isize,
+                            speedrun_timer.0.elapsed_secs() % 60.,
                             death_count.0
                         ),
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
@@ -81,7 +84,7 @@ pub fn create_end_screen_menu(
                     parent.spawn(TextBundle::from_section(
                         "Back to main menu",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
