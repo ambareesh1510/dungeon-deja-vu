@@ -43,7 +43,7 @@ fn main() {
                         title: "Dungeon Deja Vu".into(),
                         name: Some("dungeon.dejavu".into()),
                         // resolution: (500., .).into(),
-                        present_mode: PresentMode::AutoVsync,
+                        present_mode: PresentMode::AutoNoVsync,
                         fit_canvas_to_parent: true,
                         prevent_default_event_handling: false,
                         ..default()

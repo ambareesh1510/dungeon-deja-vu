@@ -37,7 +37,7 @@ impl Plugin for LevelManagementPlugin {
             .add_systems(OnExit(LevelLoadingState::Loaded), (cleanup_level_objects,))
             .add_systems(
                 Update,
-                (finish_level, update_backwards_barrier)
+                (update_backwards_barrier)
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );
     }
@@ -114,17 +114,6 @@ fn spawn_ldtk_world(
     });
 }
 
-fn finish_level(
-    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    let Ok(mut player_status) = query_player.get_single_mut() else {
-        return;
-    };
-    if keys.just_pressed(KeyCode::KeyF) {
-        player_status.level_finished = true;
-    }
-}
 
 #[derive(Default, Component)]
 pub struct KillPlayerMarker;
