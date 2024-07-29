@@ -1,2 +1,4 @@
 /target
 Cargo.lock
+/out/cyclic-tower.js
+/out/cyclic-tower_bg.wasm
