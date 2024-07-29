@@ -1,17 +1,11 @@
 use bevy::prelude::*;
-use crate::state::{LevelLoadingState, TargetLevel};
-use super::{MenuCameraMarker, SpeedrunTimer};
+use crate::state::LevelLoadingState;
+use super::{level_select::BackButtonMarker, DeathCount, MenuCameraMarker, SpeedrunTimer};
 
 #[derive(Component)]
-pub struct MainMenuNode;
+pub struct EndScreenNode;
 
-#[derive(Component)]
-pub struct StartGameButtonMarker;
-
-#[derive(Component)]
-pub struct LevelSelectButtonMarker;
-
-pub fn create_main_menu(mut commands: Commands) {
+pub fn create_end_screen_menu(mut commands: Commands, speedrun_timer: Res<SpeedrunTimer>, death_count: Res<DeathCount>) {
     commands.spawn(Camera2dBundle::default()).insert(MenuCameraMarker);
     commands
         .spawn(NodeBundle {
@@ -25,7 +19,7 @@ pub fn create_main_menu(mut commands: Commands) {
             },
             ..default()
         })
-        .insert(MainMenuNode)
+        .insert(EndScreenNode)
         .with_children(|parent| {
             parent
                 .spawn(ButtonBundle {
@@ -44,10 +38,10 @@ pub fn create_main_menu(mut commands: Commands) {
                     background_color: Color::BLACK.into(),
                     ..default()
                 })
-                .insert(StartGameButtonMarker)
+                .insert(BackButtonMarker)
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Start Game",
+                        format!("Congratulations! You finished the game in {} seconds with {} deaths.", speedrun_timer.0.elapsed_secs(), death_count.0),
                         TextStyle {
                             // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 40.0,
@@ -73,10 +67,10 @@ pub fn create_main_menu(mut commands: Commands) {
                     background_color: Color::BLACK.into(),
                     ..default()
                 })
-                .insert(LevelSelectButtonMarker)
+                .insert(BackButtonMarker)
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Level Select",
+                        "Back to main menu",
                         TextStyle {
                             // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 40.0,
@@ -89,38 +83,24 @@ pub fn create_main_menu(mut commands: Commands) {
 
 }
 
-pub fn handle_main_menu_clicks(
-    start_game_query: Query<
+pub fn handle_end_screen_clicks(
+    back_button_query: Query<
         &Interaction,
-        (Changed<Interaction>, With<StartGameButtonMarker>),
-    >,
-    level_select_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<LevelSelectButtonMarker>),
+        (Changed<Interaction>, With<BackButtonMarker>),
     >,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
-    mut speedrun_timer: ResMut<SpeedrunTimer>,
-    mut target_level: ResMut<TargetLevel>,
 ) {
-    for interaction in start_game_query.iter() {
+    for interaction in back_button_query.iter() {
         if *interaction != Interaction::Pressed {
             return;
         }
-        speedrun_timer.0.reset();
-        target_level.0 = 0;
-        next_state.set(LevelLoadingState::Loading);
-    }
-    for interaction in level_select_query.iter() {
-        if *interaction != Interaction::Pressed {
-            return;
-        }
-        next_state.set(LevelLoadingState::LevelSelect);
+        next_state.set(LevelLoadingState::MainMenu);
     }
 }
 
-pub fn cleanup_main_menu(
+pub fn cleanup_end_screen(
     mut commands: Commands,
-    query_main_menu: Query<Entity, Or<(With<MainMenuNode>, With<MenuCameraMarker>)>>,
+    query_main_menu: Query<Entity, Or<(With<EndScreenNode>, With<MenuCameraMarker>)>>,
 ) {
     for entity in query_main_menu.iter() {
         commands.entity(entity).despawn_recursive();
