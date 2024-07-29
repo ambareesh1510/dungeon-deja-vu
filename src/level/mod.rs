@@ -79,7 +79,7 @@ fn cleanup_level_objects(
     }
 }
 
-const LEVEL_IIDS: [&str; 5] = [
+pub const LEVEL_IIDS: [&str; 5] = [
     "584033f0-25d0-11ef-8b42-1596277d2df3",
     "410524d0-25d0-11ef-b3d7-db494d819bf6",
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",

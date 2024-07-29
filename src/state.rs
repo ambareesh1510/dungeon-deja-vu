@@ -4,7 +4,7 @@ pub struct StateManagementPlugin;
 
 impl Plugin for StateManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_state(LevelLoadingState::Loading)
+        app.insert_state(LevelLoadingState::MainMenu)
             .insert_resource(TargetLevel(0))
             .add_systems(
                 Update,
@@ -18,8 +18,11 @@ pub struct TargetLevel(pub usize);
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LevelLoadingState {
+    MainMenu,
+    LevelSelect,
     Loading,
     Loaded,
+    EndScreen,
 }
 
 fn change_level(

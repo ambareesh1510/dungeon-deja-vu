@@ -3,6 +3,7 @@ mod entities;
 mod level;
 mod player;
 mod state;
+mod menus;
 
 use bevy::{
     ecs::schedule::{LogLevel, ScheduleBuildSettings},
@@ -14,6 +15,7 @@ use entities::EntityManagementPlugin;
 use level::LevelManagementPlugin;
 use player::PlayerManagementPlugin;
 use state::StateManagementPlugin;
+use menus::MenuManagementPlugin;
 
 fn main() {
     App::new()
@@ -33,6 +35,7 @@ fn main() {
             StateManagementPlugin,
             EntityManagementPlugin,
             PlayerManagementPlugin,
+            MenuManagementPlugin,
         ))
         .run();
 }
