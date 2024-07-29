@@ -381,7 +381,7 @@ fn dim_camera(
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
     query_window: Query<&Window>,
-    from_level_select: ResMut<FromLevelSelect>,
+    mut from_level_select: ResMut<FromLevelSelect>,
     mut last_accessible_level: ResMut<LastAccessibleLevel>
 ) {
     let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
@@ -404,7 +404,7 @@ fn dim_camera(
     dim_sprite.custom_size = Some(Vec2::new(window.width(), window.height()));
     let color_as_linear = dim_sprite.color.to_linear();
     let mut alpha = color_as_linear.alpha();
-    if player_status.level_finished || player_status.dead {
+    if player_status.level_finished || player_status.dead || player_status.exiting {
         alpha += time.delta().as_secs_f32() * 2.;
         if player_status.dead {
             *player_velocity = Velocity::zero();
@@ -416,12 +416,15 @@ fn dim_camera(
                     last_accessible_level.0 = target_level.0 + 1;
                 }
                 if from_level_select.0 {
+                    from_level_select.0 = false;
                     next_state.set(LevelLoadingState::LevelSelect);
                 } else {
                     target_level.0 += 1;
                     next_state.set(LevelLoadingState::Loading);
                     camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
                 }
+            } else if player_status.exiting {
+                next_state.set(LevelLoadingState::MainMenu);
             } else {
                 player_status.dead = false;
                 for (mut token, mut visibility) in query_jump_tokens.iter_mut() {
