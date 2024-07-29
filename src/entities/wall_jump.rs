@@ -4,10 +4,10 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{
+use crate::{player::{
     animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
     SetCheckpointEvent,
-};
+}, sound_effects::{SoundEffectEvent, SoundEffectType}};
 
 #[derive(Component, Debug)]
 pub struct WallJumpMarker;
@@ -73,6 +73,7 @@ pub fn check_wall_jump_acquire(
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut q_wall_jump: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut inventory) = query_player.get_single_mut() else {
         return;
@@ -84,6 +85,7 @@ pub fn check_wall_jump_acquire(
     for (wall_jump, dj_sensor_entity) in q_wall_jump_sensor.iter_mut() {
         let dj_entity = q_wall_jump.get_mut(wall_jump.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, dj_sensor_entity) == Some(true) {
+            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::BigPowerup));
             inventory.has_wall_jump = true;
             println!("PLAYER ENABLED WALL JUMPS");
             commands.entity(dj_entity).despawn_recursive();

@@ -4,6 +4,7 @@ mod level;
 mod player;
 mod state;
 mod menus;
+mod sound_effects;
 
 use bevy::{
     asset::AssetMetaCheck, ecs::schedule::{LogLevel, ScheduleBuildSettings}, prelude::*
@@ -15,6 +16,7 @@ use level::LevelManagementPlugin;
 use player::PlayerManagementPlugin;
 use state::StateManagementPlugin;
 use menus::MenuManagementPlugin;
+use sound_effects::SoundEffectsManagementPlugin;
 
 fn main() {
     App::new()
@@ -40,6 +42,7 @@ fn main() {
             EntityManagementPlugin,
             PlayerManagementPlugin,
             MenuManagementPlugin,
+            SoundEffectsManagementPlugin,
         ))
         .run();
 }

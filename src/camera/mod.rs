@@ -1,5 +1,5 @@
 use crate::{
-    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, menus::DeathCount, player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
+    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, menus::DeathCount, player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
 };
 use bevy::{
     prelude::*,
@@ -45,7 +45,8 @@ impl Plugin for CameraManagementPlugin {
                     show_textbox,
                     dim_camera
                         .before(loop_main_cameras)
-                        .before(autoscroll_camera),
+                        .before(autoscroll_camera)
+                        .after(kill_player),
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             )

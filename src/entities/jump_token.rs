@@ -5,7 +5,7 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::prelude::*;
 
-use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker};
+use crate::{player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker}, sound_effects::{SoundEffectEvent, SoundEffectType}};
 
 #[derive(Component, Debug)]
 pub struct JumpTokenMarker;
@@ -91,6 +91,7 @@ pub fn check_jump_token_acquire(
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_token: Query<(&mut Visibility, &mut JumpTokenStatus)>,
     time: Res<Time>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut inventory) = query_player.get_single_mut() else {
         return;
@@ -106,6 +107,7 @@ pub fn check_jump_token_acquire(
         {
             inventory.air_jumps += 1;
             // println!("ADDED JUMP");
+            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::SmallPowerup));
             token_status.active = false;
             *token_visibility = Visibility::Hidden;
         } else if !token_status.active {

@@ -4,10 +4,10 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{
+use crate::{player::{
     animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
     SetCheckpointEvent,
-};
+}, sound_effects::{SoundEffectEvent, SoundEffectType}};
 
 use super::INTERACT_KEYCODE;
 
@@ -118,6 +118,7 @@ pub fn check_door_interacting(
     mut query_door_state: Query<(Entity, &mut DoorAnimationState, &mut DoorState)>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut inventory) = query_player.get_single_mut() else {
         return;
@@ -136,6 +137,7 @@ pub fn check_door_interacting(
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
             if inventory.num_keys >= 1 {
                 println!("UNLOCKING DOOR");
+                sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Door));
                 door_state.unlocked = true;
                 *animation_state = DoorAnimationState::Opening;
                 commands.entity(door_entity).despawn_descendants();

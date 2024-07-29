@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::{player::{PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent}, sound_effects::{SoundEffectEvent, SoundEffectType}};
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -48,6 +48,7 @@ pub fn check_key_interacting(
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
     mut query_key_entity: Query<Entity>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(mut inventory) = query_player.get_single_mut() else {
         return;
@@ -60,6 +61,7 @@ pub fn check_key_interacting(
         let key_entity = &mut query_key_entity.get_mut(key.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, key_sensor_entity) == Some(true) {
             println!("GOT KEY");
+            sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Key));
             inventory.num_keys += 1;
             commands.entity(*key_entity).despawn_recursive();
             checkpoint_event_writer.send(SetCheckpointEvent);

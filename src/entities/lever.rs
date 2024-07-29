@@ -6,7 +6,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::{
     entities::platform::add_platform_colliders,
-    player::{animation::AnimationTimer, PlayerColliderMarker, SetCheckpointEvent},
+    player::{animation::AnimationTimer, PlayerColliderMarker, SetCheckpointEvent}, sound_effects::{SoundEffectEvent, SoundEffectType},
 };
 
 use super::{
@@ -138,6 +138,7 @@ pub fn check_lever_interacting(
     >,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
+    mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
     let Ok(player_collider) = query_player_collider.get_single() else {
         return;
@@ -153,6 +154,7 @@ pub fn check_lever_interacting(
         }
 
         println!("SWITCHING LEVER {}", lever_state.id);
+        sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Lever));
         if lever_state.activated {
             *animation_state = LeverAnimationState::RightToLeft;
         } else {
