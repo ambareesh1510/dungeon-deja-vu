@@ -70,7 +70,7 @@ pub enum PlayerState {
     MovingToIdle,
     FallingToIdle,
     Sliding,
-    SlidingToJump
+    SlidingToJump,
 }
 
 #[derive(Component, Debug)]
@@ -207,7 +207,13 @@ fn update_player_grounded(
         With<PlayerWallColliderMarker>,
     >,
     mut query_player: Query<
-        (Entity, &mut PlayerInventory, &mut PlayerState, &mut PlayerStatus, &Velocity),
+        (
+            Entity,
+            &mut PlayerInventory,
+            &mut PlayerState,
+            &mut PlayerStatus,
+            &Velocity,
+        ),
         With<PlayerMarker>,
     >,
     query_sensors: Query<
@@ -276,12 +282,21 @@ fn update_player_grounded(
         }
     }
 
-    if grounded && (*player_state == PlayerState::Falling || *player_state == PlayerState::Sliding) {
+    if grounded && (*player_state == PlayerState::Falling || *player_state == PlayerState::Sliding)
+    {
         println!("Resetting jump");
         *player_state = PlayerState::FallingToIdle;
-    } else if !grounded && *player_state == PlayerState::Sliding && !(player_inventory.on_wall[0] || player_inventory.on_wall[1]) {
+    } else if !grounded
+        && *player_state == PlayerState::Sliding
+        && !(player_inventory.on_wall[0] || player_inventory.on_wall[1])
+    {
         *player_state = PlayerState::SlidingToJump;
-    } else if !grounded && velocity.linvel.y < 0. && (*player_state != PlayerState::FallingToIdle && *player_state != PlayerState::Sliding && *player_state != PlayerState::SlidingToJump) {
+    } else if !grounded
+        && velocity.linvel.y < 0.
+        && (*player_state != PlayerState::FallingToIdle
+            && *player_state != PlayerState::Sliding
+            && *player_state != PlayerState::SlidingToJump)
+    {
         *player_state = PlayerState::Falling;
     }
 }
@@ -320,7 +335,6 @@ fn move_player(
         mut player_state,
     )) = query_player.get_single_mut()
     {
-        
         if !player_status.jump_cooldown.finished() {
             player_status.jump_cooldown.tick(time.delta());
             // player_status.grounded = false;
@@ -339,7 +353,10 @@ fn move_player(
         // player_velocity.linvel = Vec2::ZERO;
         const VELOCITY: Vec2 = Vec2::new(55., 0.);
         let mut moved = false;
-        if player_status.dead || player_status.level_finished || camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer {
+        if player_status.dead
+            || player_status.level_finished
+            || camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer
+        {
             return;
         }
         if keys.pressed(KeyCode::ArrowRight) {
@@ -347,7 +364,8 @@ fn move_player(
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingRight;
             }
-            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
+            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding
+            {
                 sprite.flip_x = false;
             } else if *player_state == PlayerState::Sliding && !on_wall {
                 *player_state = PlayerState::SlidingToJump;
@@ -359,7 +377,8 @@ fn move_player(
             if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingLeft;
             }
-            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
+            if *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding
+            {
                 sprite.flip_x = true;
             } else if *player_state == PlayerState::Sliding && !on_wall {
                 *player_state = PlayerState::SlidingToJump;
@@ -380,13 +399,20 @@ fn move_player(
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if (keys.just_pressed(KeyCode::ArrowUp) || !player_status.jump_buffer.finished()) && player_status.jump_cooldown.finished() {
+        if ((keys.just_pressed(KeyCode::ArrowUp) || keys.just_pressed(KeyCode::KeyZ))
+            || !player_status.jump_buffer.finished())
+            && player_status.jump_cooldown.finished()
+        {
             if keys.just_pressed(KeyCode::ArrowUp) {
                 player_status.jump_buffer.reset();
             }
             let mut can_jump = false;
             let mut wall_jump = false;
-            if *player_state != PlayerState::Jumping && *player_state != PlayerState::Falling && *player_state != PlayerState::SlidingToJump && *player_state != PlayerState::Sliding {
+            if *player_state != PlayerState::Jumping
+                && *player_state != PlayerState::Falling
+                && *player_state != PlayerState::SlidingToJump
+                && *player_state != PlayerState::Sliding
+            {
                 // jump from floor
                 can_jump = true;
             } else if !player_status.coyote_frames.finished() {
@@ -422,7 +448,7 @@ fn move_player(
                 can_jump = true;
                 player_inventory.air_jumps -= 1;
             }
-            
+
             // ugly but i wrote it like this so i can print debug messages
             if can_jump {
                 player_velocity.linvel.y = 130.;
@@ -432,7 +458,6 @@ fn move_player(
                     *player_state = PlayerState::Jumping;
                 }
                 player_status.jump_cooldown.reset();
-                
             }
         }
 

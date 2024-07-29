@@ -1,11 +1,15 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    sprite::Anchor,
+    text::{BreakLineOn, Text2dBounds},
+};
 
 use crate::{
     camera::HUD_RENDER_LAYER,
-    player::{PlayerInventory, PlayerMarker, PlayerStatus},
+    player::{PlayerInventory, PlayerMarker},
 };
 
-use super::HudCameraMarker;
+use super::{HudCameraMarker, CAMERA_UNIT_WIDTH};
 
 #[derive(Component)]
 pub struct HudIconMarker;
@@ -25,18 +29,44 @@ pub struct HudIconInfo {
     pub index: usize,
 }
 
+#[derive(Component)]
+pub struct HudTextMarker;
+
 /// Padding from the top left corner
-const HUD_PADDING: Vec2 = Vec2::new(10., -10.);
+const HUD_PADDING: Vec2 = Vec2::new(60., -60.);
 const MAX_HUD_ICONS: usize = 15;
 
 #[derive(Event)]
 pub struct OpenTextBoxEvent {
-    text: str,
+    pub text: String,
+}
+
+pub fn show_textbox(
+    mut textbox_events: EventReader<OpenTextBoxEvent>,
+    mut q_textbox: Query<&mut Text, With<HudTextMarker>>,
+    asset_server: Res<AssetServer>,
+) {
+    let Ok(mut text) = q_textbox.get_single_mut() else {
+        return;
+    };
+    for event in textbox_events.read() {
+        println!("SET TEXT TO {}", &event.text);
+        text.sections.clear();
+        text.sections.push(TextSection {
+            value: event.text.clone(),
+            style: TextStyle {
+                font: asset_server.load("Monocraft.ttf"),
+                font_size: 18.,
+                ..default()
+            },
+        })
+    }
 }
 
 pub fn spawn_hud(
     mut commands: Commands,
     q_hud_camera: Query<(&Camera, &GlobalTransform, Entity), Added<HudCameraMarker>>,
+    asset_server: Res<AssetServer>,
 ) {
     let Ok((camera, camera_global_transform, camera_entity)) = q_hud_camera.get_single() else {
         return;
@@ -46,19 +76,34 @@ pub fn spawn_hud(
         .viewport_to_world_2d(camera_global_transform, Vec2::new(0., 0.))
         .unwrap();
 
+    let screen_br = camera
+        .viewport_to_world_2d(
+            camera_global_transform,
+            camera.logical_viewport_size().unwrap(),
+        )
+        .unwrap();
+    let pixel_scaling = (screen_br.x - screen_tl.x) / CAMERA_UNIT_WIDTH;
+    let unit_height = screen_tl.y - screen_br.y;
+
     commands.entity(camera_entity).with_children(|parent| {
         for i in 0..MAX_HUD_ICONS {
-            parent
-                .spawn(SpriteBundle {
-                    // texture: asset_server.load("slime.png"),
-                    visibility: Visibility::Hidden,
-                    ..default()
-                })
-                .insert(TransformBundle::from_transform(Transform::from_xyz(
-                    screen_tl.x + HUD_PADDING.x + i as f32 * 16.,
+            let transform = Transform {
+                translation: Vec3::new(
+                    screen_tl.x + HUD_PADDING.x + i as f32 * 16. * pixel_scaling,
                     screen_tl.y + HUD_PADDING.y,
                     0.,
-                )))
+                ),
+                scale: Vec3::new(pixel_scaling, pixel_scaling, 0.),
+                rotation: Quat::default(),
+            };
+
+            parent
+                .spawn(SpriteBundle {
+                    texture: asset_server.load("slime.png"),
+                    // visibility: Visibility::Hidden,
+                    ..default()
+                })
+                .insert(TransformBundle::from_transform(transform))
                 .insert(HudIconMarker)
                 .insert(HudIconInfo {
                     icon: HudIcon::None,
@@ -66,6 +111,34 @@ pub fn spawn_hud(
                 })
                 .insert(HUD_RENDER_LAYER);
         }
+        parent
+            .spawn(Text2dBundle {
+                text: {
+                    let mut text = Text::from_section(
+                        "",
+                        TextStyle {
+                            font: asset_server.load("Monocraft.ttf"),
+                            font_size: 18.,
+                            ..default()
+                        },
+                    );
+                    text.linebreak_behavior = BreakLineOn::WordBoundary;
+                    text
+                }
+                .with_justify(JustifyText::Center),
+                text_2d_bounds: Text2dBounds {
+                    size: Vec2::new(150. * pixel_scaling, 600. * pixel_scaling),
+                },
+                text_anchor: Anchor::TopCenter,
+                ..default()
+            })
+            .insert(HudTextMarker)
+            .insert(HUD_RENDER_LAYER)
+            .insert(TransformBundle::from_transform(Transform::from_xyz(
+                0.,
+                unit_height / 2. + HUD_PADDING.y,
+                0.,
+            )));
     });
 }
 

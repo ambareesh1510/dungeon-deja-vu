@@ -10,6 +10,7 @@ pub mod jump_token;
 pub mod key;
 pub mod lever;
 pub mod platform;
+pub mod sign;
 pub mod wall_jump;
 
 use clock::{animate_clock, ClockBundle};
@@ -25,9 +26,12 @@ use jump_token::{
 use key::{add_key_sensor, check_key_interacting, KeyBundle};
 use lever::{add_lever_interaction, animate_lever, check_lever_interacting, LeverBundle};
 use platform::{insert_platform_colliders, PlatformBundle};
+use sign::{add_sign_interaction, check_sign_interacting, SignBundle};
 use wall_jump::{add_wall_jump_sensor, animate_wall_jump, check_wall_jump_acquire, WallJumpBundle};
 
 pub struct EntityManagementPlugin;
+
+pub const INTERACT_KEYCODE: KeyCode = KeyCode::KeyX;
 
 impl Plugin for EntityManagementPlugin {
     fn build(&self, app: &mut App) {
@@ -40,6 +44,7 @@ impl Plugin for EntityManagementPlugin {
             .register_ldtk_entity::<PlatformBundle>("LeverPlatform")
             .register_ldtk_entity::<GoalBundle>("Goal")
             .register_ldtk_entity::<WallJumpBundle>("WallJump")
+            .register_ldtk_entity::<SignBundle>("Sign")
             .add_systems(
                 Update,
                 (
@@ -66,6 +71,8 @@ impl Plugin for EntityManagementPlugin {
                         attach_timer,
                         add_wall_jump_sensor,
                         check_wall_jump_acquire,
+                        add_sign_interaction,
+                        check_sign_interacting,
                     ),
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
