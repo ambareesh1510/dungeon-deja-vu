@@ -102,13 +102,15 @@ pub fn handle_level_select_menu_clicks(
     mut next_state: ResMut<NextState<LevelLoadingState>>,
     mut from_level_select: ResMut<FromLevelSelect>,
     mut target_level: ResMut<TargetLevel>,
+    last_accessible_level: Res<LastAccessibleLevel>,
 ) {
     for (interaction, level_button_marker) in level_select_query.iter() {
         if *interaction != Interaction::Pressed {
             return;
         }
-        // println!("level clicked");
-        // return;
+        if level_button_marker.0 > last_accessible_level.0 {
+            return;
+        }
         target_level.0 = level_button_marker.0;
         next_state.set(LevelLoadingState::Loading);
         from_level_select.0 = true;
