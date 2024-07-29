@@ -193,9 +193,19 @@ impl Default for TerrainBundle {
 #[derive(Component)]
 pub struct BackwardsBarrier;
 
-fn spawn_backwards_barrier(mut commands: Commands) {
+fn spawn_backwards_barrier(
+    mut commands: Commands,
+    query_level: Query<&LayerMetadata, With<LayerMetadata>>,
+) {
+    let mut level_height = 0.;
+    for level in query_level.iter() {
+        if level.layer_instance_type == bevy_ecs_ldtk::ldtk::Type::IntGrid {
+            level_height = level.c_hei as f32 * 16.;
+        }
+    }
+
     commands
-        .spawn((Collider::cuboid(1., 1000.), BackwardsBarrier))
+        .spawn((Collider::cuboid(1., level_height), BackwardsBarrier))
         .insert(TransformBundle::from_transform(Transform::from_xyz(
             0., 0., 0.,
         )));

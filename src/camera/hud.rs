@@ -21,12 +21,16 @@ pub enum HudIcon {
     DoubleJump,
     WallJump,
     JumpToken,
+    BgLeft,
+    BgCenter,
+    BgRight,
 }
 
 #[derive(Component)]
 pub struct HudIconInfo {
     pub icon: HudIcon,
     pub index: usize,
+    pub background: bool,
 }
 
 #[derive(Component)]
@@ -112,7 +116,7 @@ pub fn spawn_hud(
 
     commands.entity(camera_entity).with_children(|parent| {
         for i in 0..MAX_HUD_ICONS {
-            let transform = Transform {
+            let mut transform = Transform {
                 translation: Vec3::new(
                     -unit_width / 2.
                         + HUD_PADDING.x * pixel_scaling
@@ -135,6 +139,24 @@ pub fn spawn_hud(
                 .insert(HudIconInfo {
                     icon: HudIcon::None,
                     index: i,
+                    background: false,
+                })
+                .insert(HUD_RENDER_LAYER);
+            parent
+                .spawn(SpriteBundle {
+                    texture: asset_server.load("slime.png"),
+                    visibility: Visibility::Hidden,
+                    ..default()
+                })
+                .insert(TransformBundle::from_transform({
+                    transform.translation.z = -1.;
+                    transform
+                }))
+                .insert(HudIconMarker)
+                .insert(HudIconInfo {
+                    icon: HudIcon::None,
+                    index: i,
+                    background: true,
                 })
                 .insert(HUD_RENDER_LAYER);
         }
@@ -204,21 +226,26 @@ pub fn update_hud(
     let unit_width = screen_br.x - screen_tl.x;
     let unit_height = screen_tl.y - screen_br.y;
 
-    let mut player_hud: Vec<HudIcon> = vec![];
+    let mut player_hud: Vec<HudIcon> = vec![HudIcon::None];
+    let mut last_ind = 1usize;
     if player_inventory.has_wall_jump {
         player_hud.push(HudIcon::WallJump);
+        last_ind += 1;
     }
 
     for _ in 0..player_inventory.max_extra_jumps {
         player_hud.push(HudIcon::DoubleJump);
+        last_ind += 1;
     }
 
     for _ in 0..player_inventory.air_jumps {
         player_hud.push(HudIcon::JumpToken);
+        last_ind += 1;
     }
 
     for _ in 0..player_inventory.num_keys {
         player_hud.push(HudIcon::Key);
+        last_ind += 1;
     }
 
     while player_hud.len() < MAX_HUD_ICONS {
@@ -227,7 +254,18 @@ pub fn update_hud(
     assert!(player_hud.len() == MAX_HUD_ICONS);
 
     for (mut icon_visibility, mut info, mut transform, mut sprite) in q_hud_icons.iter_mut() {
-        info.icon = player_hud[info.index];
+        info.icon = if info.background == false {
+            player_hud[info.index]
+        } else if info.index == 0 {
+            HudIcon::BgLeft
+        } else if info.index == last_ind {
+            HudIcon::BgRight
+        } else if info.index < last_ind {
+            HudIcon::BgCenter
+        } else {
+            HudIcon::None
+        };
+
         *icon_visibility = Visibility::Visible;
 
         transform.translation = Vec3::new(
@@ -235,7 +273,7 @@ pub fn update_hud(
                 + HUD_PADDING.x * pixel_scaling
                 + info.index as f32 * 16. * pixel_scaling,
             unit_height / 2. + HUD_PADDING.y * pixel_scaling,
-            0.,
+            if info.background == false { 0. } else { -1. },
         );
         transform.scale = Vec3::new(pixel_scaling, pixel_scaling, 0.);
 
@@ -245,6 +283,9 @@ pub fn update_hud(
             HudIcon::JumpToken => *sprite = asset_server.load("jump_token_icon.png"),
             HudIcon::WallJump => *sprite = asset_server.load("wall_jump_icon.png"),
             HudIcon::DoubleJump => *sprite = asset_server.load("double_jump_icon.png"),
+            HudIcon::BgLeft => *sprite = asset_server.load("inventoryleft.png"),
+            HudIcon::BgCenter => *sprite = asset_server.load("inventorymiddle.png"),
+            HudIcon::BgRight => *sprite = asset_server.load("inventoryright.png"),
         }
     }
 }
