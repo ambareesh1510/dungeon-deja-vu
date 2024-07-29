@@ -1,10 +1,5 @@
 use crate::{
-    entities::goal::GoalMarker,
-    entities::jump_token::{JumpTokenMarker, JumpTokenStatus},
-    // player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
-    // state::TargetLevel,
-    player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
-    state::TargetLevel,
+    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, menus::DeathCount, player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
 };
 use bevy::{
     prelude::*,
@@ -24,7 +19,7 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_dim_mesh, spawn_background))
+        app.add_systems(Startup, (setup_dim_mesh,))
             .insert_resource(LdtkSettings {
                 level_background: LevelBackground::Nonexistent,
                 ..default()
@@ -33,6 +28,8 @@ impl Plugin for CameraManagementPlugin {
                 panning_state: CameraPanningState::PanningToGoal,
                 panning_timer: Timer::from_seconds(0.3, TimerMode::Once),
             })
+            .add_systems(OnEnter(LevelLoadingState::Loaded), spawn_background)
+            .add_systems(OnExit(LevelLoadingState::Loaded), cleanup_background)
             .add_systems(
                 Update,
                 (
@@ -206,6 +203,12 @@ fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
+#[derive(Component)]
+struct BackgroundMarker;
+
+#[derive(Component)]
+struct MidgroundMarker;
+
 fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     let background_sprite_handle = asset_server.load("backgroundwindows.png");
     // let midground_sprite_handle = asset_server.load("backgroundpillars.png");
@@ -225,7 +228,8 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                     texture: background_sprite_handle.clone(),
                     ..default()
                 })
-                .insert(BACKGROUND_RENDER_LAYER);
+                .insert(BACKGROUND_RENDER_LAYER)
+                .insert(BackgroundMarker);
         }
     }
     for x in 0..10 {
@@ -239,7 +243,14 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 ..default()
             })
-            .insert(MIDGROUND_RENDER_LAYER);
+            .insert(MIDGROUND_RENDER_LAYER)
+            .insert(MidgroundMarker);
+    }
+}
+
+fn cleanup_background(mut commands: Commands, query_background: Query<Entity, Or<(With<BackgroundMarker>, With<MidgroundMarker>)>>) {
+    for entity in query_background.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -370,6 +381,9 @@ fn dim_camera(
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
     query_window: Query<&Window>,
+    mut from_level_select: ResMut<FromLevelSelect>,
+    mut last_accessible_level: ResMut<LastAccessibleLevel>,
+    mut death_count: ResMut<DeathCount>,
 ) {
     let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
         query_player.get_single_mut()
@@ -391,7 +405,7 @@ fn dim_camera(
     dim_sprite.custom_size = Some(Vec2::new(window.width(), window.height()));
     let color_as_linear = dim_sprite.color.to_linear();
     let mut alpha = color_as_linear.alpha();
-    if player_status.level_finished || player_status.dead {
+    if player_status.level_finished || player_status.dead || player_status.exiting {
         alpha += time.delta().as_secs_f32() * 2.;
         if player_status.dead {
             *player_velocity = Velocity::zero();
@@ -399,10 +413,25 @@ fn dim_camera(
         if alpha >= 1.5 {
             alpha = 1.5;
             if player_status.level_finished {
-                target_level.0 += 1;
-                next_state.set(LevelLoadingState::Loading);
-                camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
+                if last_accessible_level.0 < target_level.0 + 1 {
+                    last_accessible_level.0 = target_level.0 + 1;
+                }
+                if from_level_select.0 {
+                    from_level_select.0 = false;
+                    next_state.set(LevelLoadingState::LevelSelect);
+                } else {
+                    target_level.0 += 1;
+                    if target_level.0 >= LEVEL_IIDS.len() {
+                        next_state.set(LevelLoadingState::EndScreen);
+                    } else {
+                        next_state.set(LevelLoadingState::Loading);
+                        camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
+                    }
+                }
+            } else if player_status.exiting {
+                next_state.set(LevelLoadingState::MainMenu);
             } else {
+                death_count.0 += 1;
                 player_status.dead = false;
                 for (mut token, mut visibility) in query_jump_tokens.iter_mut() {
                     token.active = true;
