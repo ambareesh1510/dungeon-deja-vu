@@ -15,6 +15,8 @@ impl Plugin for LevelManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LdtkPlugin)
             // .insert_resource(LevelSelection::index(0))
+            .insert_resource(LastAccessibleLevel(0))
+            .insert_resource(FromLevelSelect(false))
             .add_event::<SetCheckpointEvent>()
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .register_ldtk_int_cell::<WaterBundle>(2)
@@ -39,17 +41,27 @@ impl Plugin for LevelManagementPlugin {
     }
 }
 
+#[derive(Resource)]
+pub struct LastAccessibleLevel(pub usize);
+
+#[derive(Resource)]
+pub struct FromLevelSelect(pub bool);
+
 #[derive(Component)]
 struct InterLevelTimer(Timer);
 
 fn load_level(
     mut commands: Commands,
     target_level: Res<TargetLevel>,
+    mut last_accessible_level: ResMut<LastAccessibleLevel>,
     mut query_level_set: Query<&mut LevelSet>,
 ) {
     commands.spawn(InterLevelTimer(Timer::from_seconds(0.7, TimerMode::Once)));
     if let Ok(mut level_set) = query_level_set.get_single_mut() {
         *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
+        if last_accessible_level.0 < target_level.0 {
+            last_accessible_level.0 = target_level.0;
+        }
     }
 }
 
@@ -79,7 +91,7 @@ fn cleanup_level_objects(
     }
 }
 
-const LEVEL_IIDS: [&str; 5] = [
+pub const LEVEL_IIDS: [&str; 5] = [
     "584033f0-25d0-11ef-8b42-1596277d2df3",
     "410524d0-25d0-11ef-b3d7-db494d819bf6",
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",

@@ -29,6 +29,7 @@ impl Plugin for PlayerManagementPlugin {
                     animate_player,
                     set_player_checkpoint,
                     kill_player,
+                    exit_level,
                 )
                     .run_if(in_state(LevelLoadingState::Loaded)),
             );
@@ -56,6 +57,7 @@ pub struct PlayerStatus {
     jump_buffer: Timer,
     pub level_finished: bool,
     pub dead: bool,
+    pub exiting: bool,
     // air_jumps: usize,
     // max_air_jumps: usize,
 }
@@ -121,6 +123,7 @@ impl Default for PlayerBundle {
                 },
                 level_finished: false,
                 dead: false,
+                exiting: false,
             },
             player_inventory: PlayerInventory {
                 num_keys: 0,
@@ -556,5 +559,17 @@ fn kill_player(
     if kill_player {
         player_status.dead = true;
         // time.pause();
+    }
+}
+
+fn exit_level(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
+) {
+    let Ok(mut player_status) = query_player.get_single_mut() else {
+        return;
+    };
+    if keys.just_pressed(KeyCode::Escape) {
+        player_status.exiting = true;
     }
 }
