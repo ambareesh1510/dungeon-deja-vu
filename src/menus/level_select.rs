@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{level::LEVEL_IIDS, state::{LevelLoadingState, TargetLevel}};
+use crate::{level::{LastAccessibleLevel, LEVEL_IIDS}, state::{LevelLoadingState, TargetLevel}};
 use super::MenuCameraMarker;
 
 #[derive(Component)]
@@ -11,7 +11,7 @@ pub struct LevelButtonMarker(usize);
 #[derive(Component)]
 pub struct BackButtonMarker;
 
-pub fn create_level_select_menu(mut commands: Commands) {
+pub fn create_level_select_menu(mut commands: Commands, last_accessible_level: Res<LastAccessibleLevel>) {
     commands.spawn(Camera2dBundle::default()).insert(MenuCameraMarker);
     commands
         .spawn(NodeBundle {
@@ -31,7 +31,7 @@ pub fn create_level_select_menu(mut commands: Commands) {
                 parent
                     .spawn(ButtonBundle {
                         style: Style {
-                            width: Val::Px(250.0),
+                            width: Val::Px(550.0),
                             height: Val::Px(65.0),
                             border: UiRect::all(Val::Px(5.0)),
                             // horizontally center child text
@@ -48,9 +48,8 @@ pub fn create_level_select_menu(mut commands: Commands) {
                     .insert(LevelButtonMarker(i))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            format!("Level {}", i + 1),
+                            format!("Level {} {}", i + 1, if i > last_accessible_level.0 { "[LOCKED]" } else { "" }),
                             TextStyle {
-                                // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                                 font_size: 40.0,
                                 color: Color::srgb(0.9, 0.9, 0.9),
                                 ..default()

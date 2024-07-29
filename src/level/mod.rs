@@ -15,6 +15,7 @@ impl Plugin for LevelManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LdtkPlugin)
             // .insert_resource(LevelSelection::index(0))
+            .insert_resource(LastAccessibleLevel(0))
             .add_event::<SetCheckpointEvent>()
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .register_ldtk_int_cell::<WaterBundle>(2)
@@ -39,17 +40,24 @@ impl Plugin for LevelManagementPlugin {
     }
 }
 
+#[derive(Resource)]
+pub struct LastAccessibleLevel(pub usize);
+
 #[derive(Component)]
 struct InterLevelTimer(Timer);
 
 fn load_level(
     mut commands: Commands,
     target_level: Res<TargetLevel>,
+    mut last_accessible_level: ResMut<LastAccessibleLevel>,
     mut query_level_set: Query<&mut LevelSet>,
 ) {
     commands.spawn(InterLevelTimer(Timer::from_seconds(0.7, TimerMode::Once)));
     if let Ok(mut level_set) = query_level_set.get_single_mut() {
         *level_set = LevelSet::from_iids([LEVEL_IIDS[target_level.0]]);
+        if last_accessible_level.0 < target_level.0 {
+            last_accessible_level.0 = target_level.0;
+        }
     }
 }
 
