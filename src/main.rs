@@ -6,8 +6,7 @@ mod state;
 mod menus;
 
 use bevy::{
-    ecs::schedule::{LogLevel, ScheduleBuildSettings},
-    prelude::*,
+    asset::AssetMetaCheck, ecs::schedule::{LogLevel, ScheduleBuildSettings}, prelude::*
 };
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
@@ -26,7 +25,12 @@ fn main() {
                 ..default()
             });
         })
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+
+        .add_plugins(DefaultPlugins
+            .set( ImagePlugin::default_nearest())
+            .set(AssetPlugin { meta_check: AssetMetaCheck::Never,..default()})
+            
+        )
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins((
