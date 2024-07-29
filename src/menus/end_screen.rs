@@ -66,9 +66,6 @@ pub fn create_end_screen_menu(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -100,9 +97,6 @@ pub fn create_end_screen_menu(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 .insert(BackButtonMarker)
