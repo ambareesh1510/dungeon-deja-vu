@@ -7,7 +7,7 @@ impl Plugin for SoundEffectsManagementPlugin {
         app.add_event::<SoundEffectEvent>()
             .insert_resource(AudioMuted(false))
             .add_systems(Startup, start_music)
-            .add_systems(Update, (play_sound_effect, update_muted));
+            .add_systems(Update, (play_sound_effect, update_muted, delete_finished_audio_bundles));
     }
 }
 
@@ -23,6 +23,7 @@ pub enum SoundEffectType {
     Lever,
     Key,
     Death,
+    WaterDeath,
 }
 
 #[derive(Component)]
@@ -31,7 +32,7 @@ struct BackgroundMusicMarker;
 #[derive(Event)]
 pub struct SoundEffectEvent(pub SoundEffectType);
 
-const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 7] = [
+const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 8] = [
     (SoundEffectType::Jump, "sound_effects/jump.wav"),
     (
         SoundEffectType::SmallPowerup,
@@ -42,6 +43,7 @@ const SOUND_EFFECT_MAP: [(SoundEffectType, &str); 7] = [
     (SoundEffectType::Lever, "sound_effects/lever_toggle.wav"),
     (SoundEffectType::Key, "sound_effects/key.wav"),
     (SoundEffectType::Death, "sound_effects/death.wav"),
+    (SoundEffectType::WaterDeath, "sound_effects/water.wav"),
 ];
 
 fn play_sound_effect(
@@ -86,6 +88,14 @@ fn update_muted(mut muted: ResMut<AudioMuted>, keys: Res<ButtonInput<KeyCode>>, 
             bgm.set_volume(0.);
         } else {
             bgm.set_volume(0.5);
+        }
+    }
+}
+
+fn delete_finished_audio_bundles(mut commands: Commands, query_sfx: Query<(Entity, &AudioSink), Without<BackgroundMusicMarker>>) {
+    for (e, audio_sink) in query_sfx.iter() {
+        if audio_sink.empty() {
+            commands.entity(e).despawn_recursive();
         }
     }
 }
