@@ -7,7 +7,7 @@ impl Plugin for SoundEffectsManagementPlugin {
         app.add_event::<SoundEffectEvent>()
             .insert_resource(AudioMuted(false))
             .add_systems(Startup, start_music)
-            .add_systems(Update, (play_sound_effect, update_muted));
+            .add_systems(Update, (play_sound_effect, update_muted, delete_finished_audio_bundles));
     }
 }
 
@@ -88,6 +88,14 @@ fn update_muted(mut muted: ResMut<AudioMuted>, keys: Res<ButtonInput<KeyCode>>, 
             bgm.set_volume(0.);
         } else {
             bgm.set_volume(0.5);
+        }
+    }
+}
+
+fn delete_finished_audio_bundles(mut commands: Commands, query_sfx: Query<(Entity, &AudioSink), Without<BackgroundMusicMarker>>) {
+    for (e, audio_sink) in query_sfx.iter() {
+        if audio_sink.empty() {
+            commands.entity(e).despawn_recursive();
         }
     }
 }
