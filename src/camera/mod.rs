@@ -441,7 +441,12 @@ fn dim_camera(
                     }
                 }
             } else if player_status.exiting {
-                next_state.set(LevelLoadingState::MainMenu);
+                if from_level_select.0 {
+                    from_level_select.0 = false;
+                    next_state.set(LevelLoadingState::LevelSelect);
+                } else {
+                    next_state.set(LevelLoadingState::MainMenu);
+                }
             } else {
                 death_count.0 += 1;
                 player_status.dead = false;
