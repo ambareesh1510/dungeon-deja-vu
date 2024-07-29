@@ -1,10 +1,5 @@
 use crate::{
-    entities::goal::GoalMarker,
-    entities::jump_token::{JumpTokenMarker, JumpTokenStatus},
-    // player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
-    // state::TargetLevel,
-    player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
-    state::TargetLevel,
+    entities::{goal::GoalMarker, jump_token::{JumpTokenMarker, JumpTokenStatus}}, level::{FromLevelSelect, LastAccessibleLevel}, player::{loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus}, state::TargetLevel
 };
 use bevy::{
     prelude::*,
@@ -386,6 +381,8 @@ fn dim_camera(
     mut target_level: ResMut<TargetLevel>,
     time: Res<Time>,
     query_window: Query<&Window>,
+    from_level_select: ResMut<FromLevelSelect>,
+    mut last_accessible_level: ResMut<LastAccessibleLevel>
 ) {
     let Ok((mut player_status, player_checkpoint, mut player_transform, mut player_velocity)) =
         query_player.get_single_mut()
@@ -415,9 +412,16 @@ fn dim_camera(
         if alpha >= 1.5 {
             alpha = 1.5;
             if player_status.level_finished {
-                target_level.0 += 1;
-                next_state.set(LevelLoadingState::Loading);
-                camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
+                if last_accessible_level.0 < target_level.0 + 1 {
+                    last_accessible_level.0 = target_level.0 + 1;
+                }
+                if from_level_select.0 {
+                    next_state.set(LevelLoadingState::LevelSelect);
+                } else {
+                    target_level.0 += 1;
+                    next_state.set(LevelLoadingState::Loading);
+                    camera_panning_state.panning_state = CameraPanningState::PanningToGoal;
+                }
             } else {
                 player_status.dead = false;
                 for (mut token, mut visibility) in query_jump_tokens.iter_mut() {

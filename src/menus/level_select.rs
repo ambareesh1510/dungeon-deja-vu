@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{level::{LastAccessibleLevel, LEVEL_IIDS}, state::{LevelLoadingState, TargetLevel}};
+use crate::{level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS}, state::{LevelLoadingState, TargetLevel}};
 use super::MenuCameraMarker;
 
 #[derive(Component)]
@@ -93,13 +93,14 @@ pub fn create_level_select_menu(mut commands: Commands, last_accessible_level: R
 pub fn handle_level_select_menu_clicks(
     level_select_query: Query<
         (&Interaction, &LevelButtonMarker),
-        (Changed<Interaction>),
+        Changed<Interaction>,
     >,
     back_button_query: Query<
         &Interaction,
         (Changed<Interaction>, With<BackButtonMarker>),
     >,
     mut next_state: ResMut<NextState<LevelLoadingState>>,
+    mut from_level_select: ResMut<FromLevelSelect>,
     mut target_level: ResMut<TargetLevel>,
 ) {
     for (interaction, level_button_marker) in level_select_query.iter() {
@@ -110,6 +111,7 @@ pub fn handle_level_select_menu_clicks(
         // return;
         target_level.0 = level_button_marker.0;
         next_state.set(LevelLoadingState::Loading);
+        from_level_select.0 = true;
     }
     for interaction in back_button_query.iter() {
         if *interaction != Interaction::Pressed {

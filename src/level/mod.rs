@@ -16,6 +16,7 @@ impl Plugin for LevelManagementPlugin {
         app.add_plugins(LdtkPlugin)
             // .insert_resource(LevelSelection::index(0))
             .insert_resource(LastAccessibleLevel(0))
+            .insert_resource(FromLevelSelect(false))
             .add_event::<SetCheckpointEvent>()
             .register_ldtk_int_cell::<TerrainBundle>(1)
             .register_ldtk_int_cell::<WaterBundle>(2)
@@ -42,6 +43,9 @@ impl Plugin for LevelManagementPlugin {
 
 #[derive(Resource)]
 pub struct LastAccessibleLevel(pub usize);
+
+#[derive(Resource)]
+pub struct FromLevelSelect(pub bool);
 
 #[derive(Component)]
 struct InterLevelTimer(Timer);
