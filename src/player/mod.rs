@@ -317,7 +317,7 @@ fn tick_buffer_frames(
     player_status.jump_buffer.tick(time.delta());
 }
 
-fn move_player(
+pub fn move_player(
     mut query_player: Query<
         (
             &mut Velocity,

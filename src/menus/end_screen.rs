@@ -1,4 +1,4 @@
-use super::{level_select::BackButtonMarker, DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{level_select::BackButtonMarker, CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
 use crate::state::LevelLoadingState;
 use bevy::prelude::*;
 
@@ -9,10 +9,13 @@ pub fn create_end_screen_menu(
     mut commands: Commands,
     speedrun_timer: Res<SpeedrunTimer>,
     death_count: Res<DeathCount>,
+    cycle_count: Res<CycleCount>,
+    asset_server: Res<AssetServer>,
 ) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(MenuCameraMarker);
+    let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -30,8 +33,8 @@ pub fn create_end_screen_menu(
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(90.0),
+                        height: Val::Percent(35.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -47,12 +50,14 @@ pub fn create_end_screen_menu(
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         format!(
-                            "Congratulations! You finished the game in {} seconds with {} deaths.",
-                            speedrun_timer.0.elapsed_secs(),
-                            death_count.0
+                            "Congratulations! You finished the game in {}m {:.2}s with a total of {} deaths and {} cycles.",
+                            (speedrun_timer.0.elapsed_secs() / 60.) as isize,
+                            speedrun_timer.0.elapsed_secs() % 60.,
+                            death_count.0,
+                            cycle_count.0,
                         ),
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
@@ -62,8 +67,8 @@ pub fn create_end_screen_menu(
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(90.0),
+                        height: Val::Percent(25.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -81,7 +86,7 @@ pub fn create_end_screen_menu(
                     parent.spawn(TextBundle::from_section(
                         "Back to main menu",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()

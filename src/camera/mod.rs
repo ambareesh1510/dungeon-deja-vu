@@ -4,8 +4,8 @@ use crate::{
         jump_token::{JumpTokenMarker, JumpTokenStatus},
     },
     level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
-    menus::DeathCount,
-    player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
+    menus::{CycleCount, DeathCount},
+    player::{kill_player, loop_player, move_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
 use bevy::{
@@ -36,6 +36,7 @@ impl Plugin for CameraManagementPlugin {
                 panning_state: CameraPanningState::PanningToGoal,
                 panning_timer: Timer::from_seconds(0.3, TimerMode::Once),
             })
+            .add_systems(Update, manage_dim_mesh)
             .add_systems(OnEnter(LevelLoadingState::Loaded), spawn_background)
             .add_systems(OnExit(LevelLoadingState::Loaded), cleanup_background)
             .add_systems(
@@ -43,8 +44,8 @@ impl Plugin for CameraManagementPlugin {
                 (
                     pan_camera,
                     setup_camera,
-                    attach_player_camera_to_player,
-                    autoscroll_camera.after(loop_player),
+                    attach_player_camera_to_player.after(move_player),
+                    autoscroll_camera.after(loop_player).after(move_player),
                     loop_main_cameras,
                     spawn_hud,
                     update_hud,
@@ -100,6 +101,7 @@ fn pan_camera(
     >,
     time: Res<Time>,
 ) {
+    let delta_time_coeff = time.delta_seconds() * 60.;
     let Ok(mut player_camera_transform) = query_player_camera.get_single_mut() else {
         return;
     };
@@ -113,9 +115,10 @@ fn pan_camera(
         CameraPanningState::PanningToGoal => {
             let target = goal_transform.translation;
             let delta = target - player_camera_transform.translation;
-            player_camera_transform.translation.x += delta.x / 30.;
+            player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
+                camera_transform.translation.x +=
+                    parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtGoal;
@@ -123,10 +126,11 @@ fn pan_camera(
         }
         CameraPanningState::PanningToPlayer => {
             let delta = (player_transform.translation) - player_camera_transform.translation;
-            player_camera_transform.translation.x += delta.x / 30.;
+            player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
                 if parallax_coefficient.0 == 0.25 {}
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30.;
+                camera_transform.translation.x +=
+                    parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtPlayer;
@@ -150,15 +154,12 @@ const PLAYER_CAMERA_ORDER: isize = 1;
 
 pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
-pub const MIDGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(3);
-
 pub const HUD_RENDER_LAYER: RenderLayers = RenderLayers::layer(5);
 
 #[derive(Component)]
 struct ParallaxCoefficient(f32);
 
 const FOREGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(1.);
-const MIDGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.35);
 const BACKGROUND_PARALLAX_COEFFICIENT: ParallaxCoefficient = ParallaxCoefficient(0.25);
 
 #[derive(Component)]
@@ -212,6 +213,19 @@ fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
+fn manage_dim_mesh(
+    query_window: Query<&Window>,
+    mut query_dim_mesh: Query<&mut Sprite, With<DimMeshMarker>>,
+) {
+    let Ok(mut dim_mesh_sprite) = query_dim_mesh.get_single_mut() else {
+        return;
+    };
+    let Ok(window) = query_window.get_single() else {
+        return;
+    };
+    dim_mesh_sprite.custom_size = Some(Vec2::new(window.width(), window.height()));
+}
+
 #[derive(Component)]
 struct BackgroundMarker;
 
@@ -221,10 +235,7 @@ struct MidgroundMarker;
 fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
     let background_sprite_handle = asset_server.load("backgroundwindows.png");
     // let midground_sprite_handle = asset_server.load("backgroundpillars.png");
-    let pillar_intact = asset_server.load("pillar_intact.png");
-    let pillar_broken = asset_server.load("pillar_broken.png");
     let background_sprite_size = 128.;
-    let midground_sprite_size = 128.;
     for x in -10..10 {
         for y in -10..10 {
             commands
@@ -240,20 +251,6 @@ fn spawn_background(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(BACKGROUND_RENDER_LAYER)
                 .insert(BackgroundMarker);
         }
-    }
-    for x in 0..10 {
-        commands
-            .spawn(SpriteBundle {
-                transform: Transform::from_xyz(midground_sprite_size * x as f32, 0., 0.),
-                texture: if x % 4 == 2 {
-                    pillar_broken.clone()
-                } else {
-                    pillar_intact.clone()
-                },
-                ..default()
-            })
-            .insert(MIDGROUND_RENDER_LAYER)
-            .insert(MidgroundMarker);
     }
 }
 
@@ -300,29 +297,6 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
                 MainCameraMarker,
                 CameraMarker,
                 FOREGROUND_PARALLAX_COEFFICIENT,
-            ));
-
-            let mut midground_camera = Camera2dBundle::default();
-            midground_camera.projection.scaling_mode = scaling_mode;
-            midground_camera.camera.order = -2;
-            commands.spawn((
-                midground_camera,
-                BackgroundCameraMarker,
-                CameraMarker,
-                MIDGROUND_RENDER_LAYER,
-                MIDGROUND_PARALLAX_COEFFICIENT,
-            ));
-
-            let mut midground_camera_2 = Camera2dBundle::default();
-            midground_camera_2.projection.scaling_mode = scaling_mode;
-            midground_camera_2.transform.translation.x = level_width;
-            midground_camera_2.camera.order = -3;
-            commands.spawn((
-                midground_camera_2,
-                BackgroundCameraMarker,
-                CameraMarker,
-                MIDGROUND_RENDER_LAYER,
-                MIDGROUND_PARALLAX_COEFFICIENT,
             ));
 
             let mut background_camera = Camera2dBundle::default();
@@ -441,7 +415,12 @@ fn dim_camera(
                     }
                 }
             } else if player_status.exiting {
-                next_state.set(LevelLoadingState::MainMenu);
+                if from_level_select.0 {
+                    from_level_select.0 = false;
+                    next_state.set(LevelLoadingState::LevelSelect);
+                } else {
+                    next_state.set(LevelLoadingState::MainMenu);
+                }
             } else {
                 death_count.0 += 1;
                 player_status.dead = false;
@@ -522,6 +501,7 @@ fn attach_player_camera_to_player(
             Without<PlayerCameraMarker>,
         ),
     >,
+    time: Res<Time>,
 ) {
     // if camera_panning_state.panning_state != CameraPanningState::WaitingAtPlayer && camera_panning_state.panning_state != CameraPanningState::PanningToPlayer {
     if camera_panning_state.panning_state == CameraPanningState::WaitingAtGoal {
@@ -534,6 +514,7 @@ fn attach_player_camera_to_player(
     } else {
         30.
     };
+    let delta_time_coeff = time.delta_seconds() * 60.;
 
     let Ok((player_camera, player_camera_global_transform, mut player_camera_transform)) =
         query_player_camera.get_single_mut()
@@ -568,14 +549,15 @@ fn attach_player_camera_to_player(
     // the height in world units the camera can see, divided by 2
     let low_pos = (screen_tl.y - screen_br.y) / 2.;
     let delta = (target.y) - player_camera_transform.translation.y;
-    player_camera_transform.translation.y += delta / motion_factor;
+    player_camera_transform.translation.y += delta / motion_factor * delta_time_coeff;
     let mut is_at_low = false;
     if player_camera_transform.translation.y < low_pos {
         player_camera_transform.translation.y = low_pos;
         is_at_low = true;
     }
     for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
-        main_camera_transform.translation.y += parallax_coefficient.0 * delta / motion_factor;
+        main_camera_transform.translation.y +=
+            parallax_coefficient.0 * delta / motion_factor * delta_time_coeff;
         if is_at_low {
             main_camera_transform.translation.y = low_pos * parallax_coefficient.0;
         }
@@ -585,6 +567,8 @@ fn attach_player_camera_to_player(
 fn loop_main_cameras(
     mut query_main_cameras: Query<&mut Transform, With<CameraMarker>>,
     query_level: Query<&LayerMetadata>,
+    mut cycle_count: ResMut<CycleCount>,
+    camera_panning_state: Res<CameraPanning>,
 ) {
     let mut level_width = 1000. * 16.;
     for level in query_level.iter() {
@@ -595,9 +579,15 @@ fn loop_main_cameras(
     for mut camera_transform in query_main_cameras.iter_mut() {
         if camera_transform.translation.x > 3. * level_width / 2. {
             camera_transform.translation.x -= 2. * level_width;
+            if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
+                cycle_count.0 += 1;
+            }
         }
         if camera_transform.translation.x < -0.5 * level_width {
             camera_transform.translation.x += 2. * level_width;
+            if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
+                cycle_count.0 -= 1;
+            }
         }
     }
 }

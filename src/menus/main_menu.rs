@@ -1,4 +1,4 @@
-use super::{DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
 use crate::state::{LevelLoadingState, TargetLevel};
 use bevy::prelude::*;
 
@@ -11,10 +11,11 @@ pub struct StartGameButtonMarker;
 #[derive(Component)]
 pub struct LevelSelectButtonMarker;
 
-pub fn create_main_menu(mut commands: Commands) {
+pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,) {
     commands
         .spawn(Camera2dBundle::default())
         .insert(MenuCameraMarker);
+    let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -32,8 +33,37 @@ pub fn create_main_menu(mut commands: Commands) {
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(25.0),
+                        border: UiRect::all(Val::Px(5.0)),
+                        // horizontally center child text
+                        justify_content: JustifyContent::Center,
+                        // vertically center child text
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    // border_color: BorderColor(Color::BLACK),
+                    // border_radius: BorderRadius::MAX,
+                    background_color: Color::BLACK.into(),
+                    ..default()
+                })
+                // .insert(StartGameButtonMarker)
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Dungeon\nDéjà Vu",
+                        TextStyle {
+                            font: monocraft.clone(),
+                            font_size: 60.0,
+                            color: Color::srgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ));
+                });
+            parent
+                .spawn(ButtonBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(20.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -51,7 +81,7 @@ pub fn create_main_menu(mut commands: Commands) {
                     parent.spawn(TextBundle::from_section(
                         "Start Game",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
@@ -61,8 +91,8 @@ pub fn create_main_menu(mut commands: Commands) {
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(250.0),
-                        height: Val::Px(65.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(20.0),
                         border: UiRect::all(Val::Px(5.0)),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
@@ -80,7 +110,7 @@ pub fn create_main_menu(mut commands: Commands) {
                     parent.spawn(TextBundle::from_section(
                         "Level Select",
                         TextStyle {
-                            // font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: monocraft.clone(),
                             font_size: 40.0,
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
@@ -97,6 +127,7 @@ pub fn handle_main_menu_clicks(
     mut speedrun_timer: ResMut<SpeedrunTimer>,
     mut target_level: ResMut<TargetLevel>,
     mut death_counter: ResMut<DeathCount>,
+    mut cycle_counter: ResMut<CycleCount>,
 ) {
     for interaction in start_game_query.iter() {
         if *interaction != Interaction::Pressed {
@@ -104,6 +135,7 @@ pub fn handle_main_menu_clicks(
         }
         speedrun_timer.0.reset();
         death_counter.0 = 0;
+        cycle_counter.0 = 0;
         target_level.0 = 0;
         next_state.set(LevelLoadingState::Loading);
     }

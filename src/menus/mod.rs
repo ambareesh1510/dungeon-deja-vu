@@ -17,6 +17,7 @@ impl Plugin for MenuManagementPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpeedrunTimer(Stopwatch::new()))
             .insert_resource(DeathCount(0))
+            .insert_resource(CycleCount(0))
             .add_systems(OnEnter(LevelLoadingState::MainMenu), create_main_menu)
             .add_systems(OnExit(LevelLoadingState::MainMenu), cleanup_main_menu)
             .add_systems(
@@ -56,6 +57,9 @@ pub struct SpeedrunTimer(pub Stopwatch);
 
 #[derive(Resource)]
 pub struct DeathCount(pub usize);
+
+#[derive(Resource)]
+pub struct CycleCount(pub usize);
 
 fn tick_speedrun_timer(time: Res<Time>, mut speedrun_timer: ResMut<SpeedrunTimer>) {
     speedrun_timer.0.tick(time.delta());
