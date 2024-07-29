@@ -5,10 +5,14 @@ pub struct SoundEffectsManagementPlugin;
 impl Plugin for SoundEffectsManagementPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SoundEffectEvent>()
+            .insert_resource(AudioMuted(false))
             .add_systems(Startup, start_music)
-            .add_systems(Update, play_sound_effect);
+            .add_systems(Update, (play_sound_effect, update_muted));
     }
 }
+
+#[derive(Resource)]
+struct AudioMuted(bool);
 
 #[derive(Component, PartialEq, Eq)]
 pub enum SoundEffectType {
@@ -20,6 +24,9 @@ pub enum SoundEffectType {
     Key,
     Death,
 }
+
+#[derive(Component)]
+struct BackgroundMusicMarker;
 
 #[derive(Event)]
 pub struct SoundEffectEvent(pub SoundEffectType);
@@ -41,7 +48,11 @@ fn play_sound_effect(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut event_reader: EventReader<SoundEffectEvent>,
+    muted: Res<AudioMuted>,
 ) {
+    if muted.0 {
+        return;
+    }
     for SoundEffectEvent(sound_effect) in event_reader.read() {
         for (sound_effect_type, path) in SOUND_EFFECT_MAP {
             if *sound_effect == sound_effect_type {
@@ -62,5 +73,19 @@ fn start_music(mut commands: Commands, asset_server: Res<AssetServer>) {
             volume: Volume::new(0.5),
             ..default()
         }
-    });
+    }).insert(BackgroundMusicMarker);
+}
+
+fn update_muted(mut muted: ResMut<AudioMuted>, keys: Res<ButtonInput<KeyCode>>, query_bgm: Query<&AudioSink, With<BackgroundMusicMarker>>) {
+    if keys.just_pressed(KeyCode::KeyM) {
+        muted.0 = !muted.0;
+        let Ok(bgm) = query_bgm.get_single() else {
+            return;
+        };
+        if muted.0 {
+            bgm.set_volume(0.);
+        } else {
+            bgm.set_volume(0.5);
+        }
+    }
 }
