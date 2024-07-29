@@ -59,7 +59,7 @@ fn start_music(mut commands: Commands, asset_server: Res<AssetServer>) {
         source: asset_server.load("music/far_from_shore.wav"),
         settings: PlaybackSettings {
             mode: PlaybackMode::Loop,
-            volume: Volume::new(0.7),
+            volume: Volume::new(0.5),
             ..default()
         }
     });
