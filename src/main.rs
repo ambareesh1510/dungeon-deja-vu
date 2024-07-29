@@ -50,8 +50,8 @@ fn main() {
                     }),
                     ..default()
                 }),
-            // LogDiagnosticsPlugin::default(),
-            // FrameTimeDiagnosticsPlugin,
+            LogDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin,
         ))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         // .add_plugins(RapierDebugRenderPlugin::default())
@@ -64,12 +64,11 @@ fn main() {
             MenuManagementPlugin,
             SoundEffectsManagementPlugin,
         )
-    ).add_systems(Startup, setup)
-        .run();
+    ).run();
 }
 
-fn setup(
-    mut rapier_config: ResMut<RapierConfiguration>,
-){
-    rapier_config.timestep_mode = TimestepMode::Fixed { dt: 1./60., substeps:1};
-}
+// fn setup(
+//     mut rapier_config: ResMut<RapierConfiguration>,
+// ){
+//     rapier_config.timestep_mode = TimestepMode::Fixed { dt: 1./60., substeps:1};
+// }.add_systems(Startup, setup)
