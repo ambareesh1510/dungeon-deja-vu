@@ -92,12 +92,12 @@ fn cleanup_level_objects(
 }
 
 pub const LEVEL_IIDS: [&str; 6] = [
-    "d509f450-4ce0-11ef-bfc4-339ca4a6f158",
     "584033f0-25d0-11ef-8b42-1596277d2df3",
     "410524d0-25d0-11ef-b3d7-db494d819bf6",
     "a56e81e0-25d0-11ef-a5a2-a938910d70c0",
     "dd650080-25d0-11ef-814d-6b1968b17386",
     "a4a8aaa0-25d0-11ef-8b42-cbb4af80c537",
+    "d509f450-4ce0-11ef-bfc4-339ca4a6f158",
 ];
 
 fn spawn_ldtk_world(
