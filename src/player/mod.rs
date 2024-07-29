@@ -105,8 +105,8 @@ struct PlayerBundle {
 
 impl Default for PlayerBundle {
     fn default() -> Self {
-        let mut jump_cooldown_timer = Timer::new(Duration::from_millis(300), TimerMode::Once);
-        jump_cooldown_timer.tick(Duration::from_millis(300));
+        let mut jump_cooldown_timer = Timer::new(Duration::from_millis(200), TimerMode::Once);
+        jump_cooldown_timer.tick(Duration::from_millis(200));
         Self {
             sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
             render_layer: PLAYER_RENDER_LAYER,
