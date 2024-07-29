@@ -8,8 +8,10 @@ mod state;
 
 use bevy::{
     asset::AssetMetaCheck,
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     ecs::schedule::{LogLevel, ScheduleBuildSettings},
     prelude::*,
+    window::PresentMode,
 };
 use bevy_rapier2d::prelude::*;
 use camera::CameraManagementPlugin;
@@ -29,14 +31,31 @@ fn main() {
                 ..default()
             });
         })
-        .add_plugins(
+
+
+        .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
                     ..default()
+
+                })
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Dungeon Deja Vu".into(),
+                        name: Some("dungeon.dejavu".into()),
+                        // resolution: (500., .).into(),
+                        present_mode: PresentMode::AutoVsync,
+                        fit_canvas_to_parent: true,
+                        prevent_default_event_handling: false,
+                        ..default()
+                    }),
+                    ..default()
                 }),
-        )
+            LogDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin,
+        ))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
         // .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins((
