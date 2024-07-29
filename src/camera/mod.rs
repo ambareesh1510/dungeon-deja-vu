@@ -5,7 +5,7 @@ use crate::{
     },
     level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
     menus::{CycleCount, DeathCount},
-    player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
+    player::{kill_player, loop_player, move_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
 use bevy::{
@@ -44,8 +44,8 @@ impl Plugin for CameraManagementPlugin {
                 (
                     pan_camera,
                     setup_camera,
-                    attach_player_camera_to_player,
-                    autoscroll_camera.after(loop_player),
+                    attach_player_camera_to_player.after(move_player),
+                    autoscroll_camera.after(loop_player).after(move_player),
                     loop_main_cameras,
                     spawn_hud,
                     update_hud,
@@ -117,7 +117,8 @@ fn pan_camera(
             let delta = target - player_camera_transform.translation;
             player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
+                camera_transform.translation.x +=
+                    parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtGoal;
@@ -128,7 +129,8 @@ fn pan_camera(
             player_camera_transform.translation.x += delta.x / 30. * delta_time_coeff;
             for (mut camera_transform, parallax_coefficient) in query_cameras.iter_mut() {
                 if parallax_coefficient.0 == 0.25 {}
-                camera_transform.translation.x += parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
+                camera_transform.translation.x +=
+                    parallax_coefficient.0 * delta.x / 30. * delta_time_coeff;
             }
             if delta.x.abs() < 1.0 {
                 camera_panning_state.panning_state = CameraPanningState::WaitingAtPlayer;
@@ -211,7 +213,10 @@ fn setup_dim_mesh(mut commands: Commands, query_window: Query<&Window>) {
     commands.spawn((dim_camera, RenderLayers::layer(10), DimCameraMarker));
 }
 
-fn manage_dim_mesh(query_window: Query<&Window>, mut query_dim_mesh: Query<&mut Sprite, With<DimMeshMarker>>) {
+fn manage_dim_mesh(
+    query_window: Query<&Window>,
+    mut query_dim_mesh: Query<&mut Sprite, With<DimMeshMarker>>,
+) {
     let Ok(mut dim_mesh_sprite) = query_dim_mesh.get_single_mut() else {
         return;
     };
@@ -551,7 +556,8 @@ fn attach_player_camera_to_player(
         is_at_low = true;
     }
     for (mut main_camera_transform, parallax_coefficient) in query_main_camera.iter_mut() {
-        main_camera_transform.translation.y += parallax_coefficient.0 * delta / motion_factor * delta_time_coeff;
+        main_camera_transform.translation.y +=
+            parallax_coefficient.0 * delta / motion_factor * delta_time_coeff;
         if is_at_low {
             main_camera_transform.translation.y = low_pos * parallax_coefficient.0;
         }
