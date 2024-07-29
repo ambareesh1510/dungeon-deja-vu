@@ -4,7 +4,7 @@ use crate::{
         jump_token::{JumpTokenMarker, JumpTokenStatus},
     },
     level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
-    menus::DeathCount,
+    menus::{CycleCount, DeathCount},
     player::{kill_player, loop_player, PlayerCheckpoint, PlayerMarker, PlayerStatus},
     state::TargetLevel,
 };
@@ -561,6 +561,8 @@ fn attach_player_camera_to_player(
 fn loop_main_cameras(
     mut query_main_cameras: Query<&mut Transform, With<CameraMarker>>,
     query_level: Query<&LayerMetadata>,
+    mut cycle_count: ResMut<CycleCount>,
+    camera_panning_state: Res<CameraPanning>,
 ) {
     let mut level_width = 1000. * 16.;
     for level in query_level.iter() {
@@ -571,9 +573,15 @@ fn loop_main_cameras(
     for mut camera_transform in query_main_cameras.iter_mut() {
         if camera_transform.translation.x > 3. * level_width / 2. {
             camera_transform.translation.x -= 2. * level_width;
+            if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
+                cycle_count.0 += 1;
+            }
         }
         if camera_transform.translation.x < -0.5 * level_width {
             camera_transform.translation.x += 2. * level_width;
+            if camera_panning_state.panning_state == CameraPanningState::WaitingAtPlayer {
+                cycle_count.0 -= 1;
+            }
         }
     }
 }

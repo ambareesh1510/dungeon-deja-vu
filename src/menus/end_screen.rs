@@ -1,4 +1,4 @@
-use super::{level_select::BackButtonMarker, DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{level_select::BackButtonMarker, CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
 use crate::state::LevelLoadingState;
 use bevy::prelude::*;
 
@@ -9,6 +9,7 @@ pub fn create_end_screen_menu(
     mut commands: Commands,
     speedrun_timer: Res<SpeedrunTimer>,
     death_count: Res<DeathCount>,
+    cycle_count: Res<CycleCount>,
     asset_server: Res<AssetServer>,
 ) {
     commands
@@ -49,10 +50,11 @@ pub fn create_end_screen_menu(
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         format!(
-                            "Congratulations! You finished the game in {}m {:.2}s with {} deaths.",
+                            "Congratulations! You finished the game in {}m {:.2}s with a total of {} deaths and {} cycles.",
                             (speedrun_timer.0.elapsed_secs() / 60.) as isize,
                             speedrun_timer.0.elapsed_secs() % 60.,
-                            death_count.0
+                            death_count.0,
+                            cycle_count.0,
                         ),
                         TextStyle {
                             font: monocraft.clone(),

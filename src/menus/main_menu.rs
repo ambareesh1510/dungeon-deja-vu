@@ -1,4 +1,4 @@
-use super::{DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
 use crate::state::{LevelLoadingState, TargetLevel};
 use bevy::prelude::*;
 
@@ -127,6 +127,7 @@ pub fn handle_main_menu_clicks(
     mut speedrun_timer: ResMut<SpeedrunTimer>,
     mut target_level: ResMut<TargetLevel>,
     mut death_counter: ResMut<DeathCount>,
+    mut cycle_counter: ResMut<CycleCount>,
 ) {
     for interaction in start_game_query.iter() {
         if *interaction != Interaction::Pressed {
@@ -134,6 +135,7 @@ pub fn handle_main_menu_clicks(
         }
         speedrun_timer.0.reset();
         death_counter.0 = 0;
+        cycle_counter.0 = 0;
         target_level.0 = 0;
         next_state.set(LevelLoadingState::Loading);
     }
