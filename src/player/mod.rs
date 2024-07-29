@@ -578,7 +578,11 @@ pub fn kill_player(
     }
     if kill_player {
         if !player_status.dead {
-            sound_effect_event_writer.send(SoundEffectEvent(if spike_kill { SoundEffectType::Death } else { SoundEffectType::WaterDeath }));
+            sound_effect_event_writer.send(SoundEffectEvent(if spike_kill {
+                SoundEffectType::Death
+            } else {
+                SoundEffectType::WaterDeath
+            }));
         }
         player_status.dead = true;
         // time.pause();

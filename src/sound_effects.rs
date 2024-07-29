@@ -1,4 +1,7 @@
-use bevy::{audio::{PlaybackMode, Volume}, prelude::*};
+use bevy::{
+    audio::{PlaybackMode, Volume},
+    prelude::*,
+};
 
 pub struct SoundEffectsManagementPlugin;
 
@@ -7,7 +10,14 @@ impl Plugin for SoundEffectsManagementPlugin {
         app.add_event::<SoundEffectEvent>()
             .insert_resource(AudioMuted(false))
             .add_systems(Startup, start_music)
-            .add_systems(Update, (play_sound_effect, update_muted, delete_finished_audio_bundles));
+            .add_systems(
+                Update,
+                (
+                    play_sound_effect,
+                    update_muted,
+                    delete_finished_audio_bundles,
+                ),
+            );
     }
 }
 
@@ -68,17 +78,23 @@ fn play_sound_effect(
 }
 
 fn start_music(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(AudioBundle {
-        source: asset_server.load("music/far_from_shore.wav"),
-        settings: PlaybackSettings {
-            mode: PlaybackMode::Loop,
-            volume: Volume::new(0.5),
-            ..default()
-        }
-    }).insert(BackgroundMusicMarker);
+    commands
+        .spawn(AudioBundle {
+            source: asset_server.load("music/far_from_shore.wav"),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::new(0.5),
+                ..default()
+            },
+        })
+        .insert(BackgroundMusicMarker);
 }
 
-fn update_muted(mut muted: ResMut<AudioMuted>, keys: Res<ButtonInput<KeyCode>>, query_bgm: Query<&AudioSink, With<BackgroundMusicMarker>>) {
+fn update_muted(
+    mut muted: ResMut<AudioMuted>,
+    keys: Res<ButtonInput<KeyCode>>,
+    query_bgm: Query<&AudioSink, With<BackgroundMusicMarker>>,
+) {
     if keys.just_pressed(KeyCode::KeyM) {
         muted.0 = !muted.0;
         let Ok(bgm) = query_bgm.get_single() else {
@@ -92,7 +108,10 @@ fn update_muted(mut muted: ResMut<AudioMuted>, keys: Res<ButtonInput<KeyCode>>, 
     }
 }
 
-fn delete_finished_audio_bundles(mut commands: Commands, query_sfx: Query<(Entity, &AudioSink), Without<BackgroundMusicMarker>>) {
+fn delete_finished_audio_bundles(
+    mut commands: Commands,
+    query_sfx: Query<(Entity, &AudioSink), Without<BackgroundMusicMarker>>,
+) {
     for (e, audio_sink) in query_sfx.iter() {
         if audio_sink.empty() {
             commands.entity(e).despawn_recursive();

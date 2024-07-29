@@ -1,4 +1,7 @@
-use super::{level_select::BackButtonMarker, CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{
+    level_select::BackButtonMarker, main_menu::BackgroundMenuTileMarker, CycleCount, DeathCount,
+    MenuCameraMarker, SpeedrunTimer, UI_RENDER_LAYER,
+};
 use crate::state::LevelLoadingState;
 use bevy::prelude::*;
 
@@ -12,9 +15,30 @@ pub fn create_end_screen_menu(
     cycle_count: Res<CycleCount>,
     asset_server: Res<AssetServer>,
 ) {
+    let mut camera = Camera2dBundle::default();
+    camera.camera.order = 11;
     commands
-        .spawn(Camera2dBundle::default())
+        .spawn(camera)
+        .insert(UI_RENDER_LAYER)
         .insert(MenuCameraMarker);
+    let background_sprite_handle = asset_server.load("backgroundwindows.png");
+    let background_sprite_size = 128.;
+    for x in -10..10 {
+        for y in -10..10 {
+            commands
+                .spawn(SpriteBundle {
+                    transform: Transform::from_xyz(
+                        background_sprite_size * x as f32,
+                        background_sprite_size * y as f32,
+                        0.,
+                    ),
+                    texture: background_sprite_handle.clone(),
+                    ..default()
+                })
+                .insert(BackgroundMenuTileMarker)
+                .insert(UI_RENDER_LAYER);
+        }
+    }
     let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
@@ -62,8 +86,8 @@ pub fn create_end_screen_menu(
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
                         },
-                    ));
-                });
+                    )).insert(UI_RENDER_LAYER);
+                }).insert(UI_RENDER_LAYER);
             parent
                 .spawn(ButtonBundle {
                     style: Style {
@@ -91,8 +115,8 @@ pub fn create_end_screen_menu(
                             color: Color::srgb(0.9, 0.9, 0.9),
                             ..default()
                         },
-                    ));
-                });
+                    )).insert(UI_RENDER_LAYER);
+                }).insert(UI_RENDER_LAYER);
         });
 }
 

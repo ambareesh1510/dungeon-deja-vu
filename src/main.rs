@@ -31,15 +31,12 @@ fn main() {
                 ..default()
             });
         })
-
-
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
                     ..default()
-
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {

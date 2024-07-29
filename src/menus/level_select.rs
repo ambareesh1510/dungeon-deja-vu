@@ -1,4 +1,4 @@
-use super::MenuCameraMarker;
+use super::{main_menu::BackgroundMenuTileMarker, MenuCameraMarker, UI_RENDER_LAYER};
 use crate::{
     level::{FromLevelSelect, LastAccessibleLevel, LEVEL_IIDS},
     state::{LevelLoadingState, TargetLevel},
@@ -19,9 +19,30 @@ pub fn create_level_select_menu(
     last_accessible_level: Res<LastAccessibleLevel>,
     asset_server: Res<AssetServer>,
 ) {
+    let mut camera = Camera2dBundle::default();
+    camera.camera.order = 11;
     commands
-        .spawn(Camera2dBundle::default())
+        .spawn(camera)
+        .insert(UI_RENDER_LAYER)
         .insert(MenuCameraMarker);
+    let background_sprite_handle = asset_server.load("backgroundwindows.png");
+    let background_sprite_size = 128.;
+    for x in -10..10 {
+        for y in -10..10 {
+            commands
+                .spawn(SpriteBundle {
+                    transform: Transform::from_xyz(
+                        background_sprite_size * x as f32,
+                        background_sprite_size * y as f32,
+                        0.,
+                    ),
+                    texture: background_sprite_handle.clone(),
+                    ..default()
+                })
+                .insert(BackgroundMenuTileMarker)
+                .insert(UI_RENDER_LAYER);
+        }
+    }
     let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
@@ -42,7 +63,7 @@ pub fn create_level_select_menu(
                     .spawn(ButtonBundle {
                         style: Style {
                             width: Val::Percent(100.0),
-                            height: Val::Percent(15.0),
+                            height: Val::Percent(10.0),
                             border: UiRect::all(Val::Px(5.0)),
                             // horizontally center child text
                             justify_content: JustifyContent::Center,
@@ -50,31 +71,31 @@ pub fn create_level_select_menu(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        border_color: BorderColor(Color::BLACK),
-                        border_radius: BorderRadius::MAX,
-                        background_color: Color::BLACK.into(),
                         ..default()
                     })
                     .insert(LevelButtonMarker(i))
                     .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(
-                            format!(
-                                "Level {} {}",
-                                i + 1,
-                                if i > last_accessible_level.0 {
-                                    "[LOCKED]"
-                                } else {
-                                    ""
-                                }
-                            ),
-                            TextStyle {
-                                font: monocraft.clone(),
-                                font_size: 40.0,
-                                color: Color::srgb(0.9, 0.9, 0.9),
-                                ..default()
-                            },
-                        ));
-                    });
+                        parent
+                            .spawn(TextBundle::from_section(
+                                format!(
+                                    "Level {} {}",
+                                    i + 1,
+                                    if i > last_accessible_level.0 {
+                                        "[LOCKED]"
+                                    } else {
+                                        ""
+                                    }
+                                ),
+                                TextStyle {
+                                    font: monocraft.clone(),
+                                    font_size: 40.0,
+                                    color: Color::srgb(0.9, 0.9, 0.9),
+                                    ..default()
+                                },
+                            ))
+                            .insert(UI_RENDER_LAYER);
+                    })
+                    .insert(UI_RENDER_LAYER);
             }
             parent
                 .spawn(ButtonBundle {
@@ -88,23 +109,23 @@ pub fn create_level_select_menu(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 .insert(BackButtonMarker)
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Back to main menu",
-                        TextStyle {
-                            font: monocraft.clone(),
-                            font_size: 40.0,
-                            color: Color::srgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "Back to main menu",
+                            TextStyle {
+                                font: monocraft.clone(),
+                                font_size: 40.0,
+                                color: Color::srgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(UI_RENDER_LAYER);
+                })
+                .insert(UI_RENDER_LAYER);
         });
 }
 

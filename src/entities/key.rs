@@ -5,10 +5,12 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::{
-    player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent},
+    player::{
+        animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
+        SetCheckpointEvent,
+    },
     sound_effects::{SoundEffectEvent, SoundEffectType},
 };
-
 
 #[derive(Component, Debug)]
 pub struct KeyMarker;
@@ -37,8 +39,10 @@ impl Default for KeyBundle {
     }
 }
 
-pub fn animate_key( time: Res<Time>,
-    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<KeyMarker>>) {
+pub fn animate_key(
+    time: Res<Time>,
+    mut query: Query<(&mut AnimationTimer, &mut TextureAtlas), With<KeyMarker>>,
+) {
     let durations = [450, 250, 200, 250, 450, 250, 200, 250];
 
     for (mut timer, mut sprite) in query.iter_mut() {
@@ -47,7 +51,6 @@ pub fn animate_key( time: Res<Time>,
             sprite.index = (sprite.index + 1) % 8;
             timer.set_duration(Duration::from_millis(durations[sprite.index as usize]));
         }
-
     }
 }
 pub fn add_key_sensor(mut commands: Commands, query_keys: Query<Entity, Added<KeyMarker>>) {

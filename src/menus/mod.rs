@@ -1,4 +1,4 @@
-use bevy::{prelude::*, time::Stopwatch};
+use bevy::{prelude::*, render::view::RenderLayers, time::Stopwatch};
 use end_screen::{cleanup_end_screen, create_end_screen_menu, handle_end_screen_clicks};
 use level_select::{
     cleanup_level_select_menu, create_level_select_menu, handle_level_select_menu_clicks,
@@ -12,6 +12,8 @@ pub struct MenuManagementPlugin;
 mod end_screen;
 mod level_select;
 mod main_menu;
+
+const UI_RENDER_LAYER: RenderLayers = RenderLayers::layer(11);
 
 impl Plugin for MenuManagementPlugin {
     fn build(&self, app: &mut App) {

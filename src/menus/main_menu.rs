@@ -1,4 +1,4 @@
-use super::{CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer};
+use super::{CycleCount, DeathCount, MenuCameraMarker, SpeedrunTimer, UI_RENDER_LAYER};
 use crate::state::{LevelLoadingState, TargetLevel};
 use bevy::prelude::*;
 
@@ -11,10 +11,34 @@ pub struct StartGameButtonMarker;
 #[derive(Component)]
 pub struct LevelSelectButtonMarker;
 
-pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,) {
+#[derive(Component)]
+pub struct BackgroundMenuTileMarker;
+
+pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let mut camera = Camera2dBundle::default();
+    camera.camera.order = 11;
     commands
-        .spawn(Camera2dBundle::default())
+        .spawn(camera)
+        .insert(UI_RENDER_LAYER)
         .insert(MenuCameraMarker);
+    let background_sprite_handle = asset_server.load("backgroundwindows.png");
+    let background_sprite_size = 128.;
+    for x in -10..10 {
+        for y in -10..10 {
+            commands
+                .spawn(SpriteBundle {
+                    transform: Transform::from_xyz(
+                        background_sprite_size * x as f32,
+                        background_sprite_size * y as f32,
+                        0.,
+                    ),
+                    texture: background_sprite_handle.clone(),
+                    ..default()
+                })
+                .insert(BackgroundMenuTileMarker)
+                .insert(UI_RENDER_LAYER);
+        }
+    }
     let monocraft = asset_server.load("Monocraft.ttf");
     commands
         .spawn(NodeBundle {
@@ -28,6 +52,7 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
             },
             ..default()
         })
+        // .insert(UI_RENDER_LAYER)
         .insert(MainMenuNode)
         .with_children(|parent| {
             parent
@@ -42,23 +67,23 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    // border_color: BorderColor(Color::BLACK),
-                    // border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 // .insert(StartGameButtonMarker)
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Dungeon\nDéjà Vu",
-                        TextStyle {
-                            font: monocraft.clone(),
-                            font_size: 60.0,
-                            color: Color::srgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "Dungeon\nDéjà Vu",
+                            TextStyle {
+                                font: monocraft.clone(),
+                                font_size: 60.0,
+                                color: Color::srgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(UI_RENDER_LAYER);
+                })
+                .insert(UI_RENDER_LAYER);
             parent
                 .spawn(ButtonBundle {
                     style: Style {
@@ -71,23 +96,23 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 .insert(StartGameButtonMarker)
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Start Game",
-                        TextStyle {
-                            font: monocraft.clone(),
-                            font_size: 40.0,
-                            color: Color::srgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "Start Game",
+                            TextStyle {
+                                font: monocraft.clone(),
+                                font_size: 40.0,
+                                color: Color::srgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(UI_RENDER_LAYER);
+                })
+                .insert(UI_RENDER_LAYER);
             parent
                 .spawn(ButtonBundle {
                     style: Style {
@@ -100,23 +125,23 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>,)
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    border_color: BorderColor(Color::BLACK),
-                    border_radius: BorderRadius::MAX,
-                    background_color: Color::BLACK.into(),
                     ..default()
                 })
                 .insert(LevelSelectButtonMarker)
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Level Select",
-                        TextStyle {
-                            font: monocraft.clone(),
-                            font_size: 40.0,
-                            color: Color::srgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "Level Select",
+                            TextStyle {
+                                font: monocraft.clone(),
+                                font_size: 40.0,
+                                color: Color::srgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(UI_RENDER_LAYER);
+                })
+                .insert(UI_RENDER_LAYER);
         });
 }
 
@@ -144,12 +169,20 @@ pub fn handle_main_menu_clicks(
             return;
         }
         next_state.set(LevelLoadingState::LevelSelect);
+        println!("entering level select");
     }
 }
 
 pub fn cleanup_main_menu(
     mut commands: Commands,
-    query_main_menu: Query<Entity, Or<(With<MainMenuNode>, With<MenuCameraMarker>)>>,
+    query_main_menu: Query<
+        Entity,
+        Or<(
+            With<MainMenuNode>,
+            With<MenuCameraMarker>,
+            With<BackgroundMenuTileMarker>,
+        )>,
+    >,
 ) {
     for entity in query_main_menu.iter() {
         commands.entity(entity).despawn_recursive();
