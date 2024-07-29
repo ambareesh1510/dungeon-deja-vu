@@ -63,6 +63,13 @@ fn main() {
             PlayerManagementPlugin,
             MenuManagementPlugin,
             SoundEffectsManagementPlugin,
-        ))
+        )
+    ).add_systems(Startup, setup)
         .run();
+}
+
+fn setup(
+    mut rapier_config: ResMut<RapierConfiguration>,
+){
+    rapier_config.timestep_mode = TimestepMode::Fixed { dt: 1./60., substeps:1};
 }
