@@ -3,8 +3,6 @@ use std::time::Duration;
 
 use crate::player::{PlayerMarker, PlayerState};
 
-use super::PlayerInventory;
-
 #[derive(Resource)]
 pub struct AnimationInfo {
     moving_start: usize,
@@ -55,16 +53,11 @@ pub fn animate_player(
     time: Res<Time>,
     animation_info: Res<AnimationInfo>,
     mut query: Query<
-        (
-            &mut TextureAtlas,
-            &mut PlayerState,
-            &mut PlayerInventory,
-            &mut AnimationTimer,
-        ),
+        (&mut TextureAtlas, &mut PlayerState, &mut AnimationTimer),
         With<PlayerMarker>,
     >,
 ) {
-    if let Ok((mut atlas, mut state, inventory, mut timer)) = query.get_single_mut() {
+    if let Ok((mut atlas, mut state, mut timer)) = query.get_single_mut() {
         timer.tick(time.delta());
         // println!("state: {:?}", *state);
         if timer.finished() {
@@ -115,7 +108,7 @@ pub fn animate_player(
                     //         || atlas.index > animation_info.sliding_end
                     //     {
                     //         atlas.index = animation_info.sliding_start;
-                            
+
                     //     }
                     //     atlas.index = if atlas.index == animation_info.sliding_end {
                     //         animation_info.sliding_end
@@ -134,9 +127,7 @@ pub fn animate_player(
                         atlas.index = animation_info.jumping_start;
                     } else {
                         atlas.index = if atlas.index == animation_info.jumping_end {
-                            
                             atlas.index
-                            
                         } else {
                             atlas.index + 1
                         };
@@ -174,7 +165,6 @@ pub fn animate_player(
                         atlas.index = animation_info.falling_start;
                     } else {
                         atlas.index = if atlas.index == animation_info.falling_end {
-                            
                             atlas.index
                         } else {
                             atlas.index + 1
@@ -198,7 +188,6 @@ pub fn animate_player(
                         || atlas.index > animation_info.falling_to_idle_end
                     {
                         atlas.index = animation_info.falling_to_idle_start;
-
                     }
                     atlas.index = if atlas.index == animation_info.falling_to_idle_end {
                         *state = PlayerState::Idle;
@@ -211,7 +200,8 @@ pub fn animate_player(
                         animation_info.falling_to_idle_durations
                             [atlas.index - animation_info.falling_to_idle_start],
                     ));
-                } PlayerState::Sliding => {
+                }
+                PlayerState::Sliding => {
                     if atlas.index < animation_info.sliding_start
                         || atlas.index > animation_info.sliding_end
                     {
@@ -228,7 +218,8 @@ pub fn animate_player(
                         animation_info.sliding_durations
                             [atlas.index - animation_info.sliding_start],
                     ));
-                } PlayerState::SlidingToJump => {
+                }
+                PlayerState::SlidingToJump => {
                     if atlas.index < animation_info.sliding_start
                         || atlas.index > animation_info.sliding_end
                     {
@@ -237,14 +228,11 @@ pub fn animate_player(
                     atlas.index = if atlas.index == animation_info.sliding_start {
                         *state = PlayerState::Jumping;
                         animation_info.jumping_start + 1
-                        
                     } else {
                         atlas.index - 1
                     };
 
-                    timer.set_duration(Duration::from_millis(
-                        50,
-                    ));
+                    timer.set_duration(Duration::from_millis(50));
                 }
             }
         }

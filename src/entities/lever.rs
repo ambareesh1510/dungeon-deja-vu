@@ -9,7 +9,10 @@ use crate::{
     player::{animation::AnimationTimer, PlayerColliderMarker, SetCheckpointEvent},
 };
 
-use super::platform::{PlatformInfo, PlatformMarker};
+use super::{
+    platform::{PlatformInfo, PlatformMarker},
+    INTERACT_KEYCODE,
+};
 
 #[derive(Component, Debug)]
 pub struct LeverMarker;
@@ -139,7 +142,7 @@ pub fn check_lever_interacting(
     let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
-    if !keys.just_pressed(KeyCode::KeyQ) {
+    if !keys.just_pressed(INTERACT_KEYCODE) {
         return;
     }
 

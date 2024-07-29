@@ -7,9 +7,9 @@ use bevy::{
 };
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::Velocity;
-use hud::{spawn_hud, update_hud};
+use hud::{show_textbox, spawn_hud, update_hud, OpenTextBoxEvent};
 
-mod hud;
+pub mod hud;
 
 use crate::state::LevelLoadingState;
 
@@ -19,7 +19,8 @@ pub struct CameraManagementPlugin;
 
 impl Plugin for CameraManagementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_dim_mesh,))
+        app.add_systems(Startup, (setup_dim_mesh, spawn_background))
+            .add_event::<OpenTextBoxEvent>()
             .insert_resource(LdtkSettings {
                 level_background: LevelBackground::Nonexistent,
                 ..default()
@@ -41,6 +42,7 @@ impl Plugin for CameraManagementPlugin {
                     loop_main_cameras,
                     spawn_hud,
                     update_hud,
+                    show_textbox,
                     dim_camera
                         .before(loop_main_cameras)
                         .before(autoscroll_camera),
@@ -337,7 +339,7 @@ fn setup_camera(mut commands: Commands, query_level: Query<&LayerMetadata, Added
             ));
 
             let mut hud_camera = Camera2dBundle::default();
-            hud_camera.projection.scaling_mode = scaling_mode;
+            hud_camera.projection.scaling_mode = ScalingMode::WindowSize(1.);
             hud_camera.camera.order = 5;
             commands.spawn((
                 hud_camera,

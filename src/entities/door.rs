@@ -4,7 +4,12 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::{animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker, SetCheckpointEvent};
+use crate::player::{
+    animation::AnimationTimer, PlayerColliderMarker, PlayerInventory, PlayerMarker,
+    SetCheckpointEvent,
+};
+
+use super::INTERACT_KEYCODE;
 
 #[derive(Component, Debug)]
 pub struct DoorMarker;
@@ -36,7 +41,6 @@ pub struct DoorBundle {
     animation_timer: AnimationTimer,
     // rigid_body: RigidBody,
     // collider: Collider,
-
 }
 
 impl Default for DoorBundle {
@@ -58,7 +62,14 @@ impl Default for DoorBundle {
 }
 pub fn animate_door(
     time: Res<Time>,
-    mut query: Query<(&mut AnimationTimer, &mut DoorAnimationState, &mut TextureAtlas), With<DoorMarker>>,
+    mut query: Query<
+        (
+            &mut AnimationTimer,
+            &mut DoorAnimationState,
+            &mut TextureAtlas,
+        ),
+        With<DoorMarker>,
+    >,
 ) {
     for (mut timer, mut state, mut atlas) in query.iter_mut() {
         timer.tick(time.delta());
@@ -73,7 +84,6 @@ pub fn animate_door(
                         atlas.index += 1
                     }
                     timer.set_duration(Duration::from_millis(50));
-
                 }
             }
         }
@@ -105,7 +115,7 @@ pub fn check_door_interacting(
     mut query_doors: Query<(&mut Parent, Entity), With<DoorSensorMarker>>,
     mut query_player: Query<&mut PlayerInventory, With<PlayerMarker>>,
     query_player_collider: Query<Entity, With<PlayerColliderMarker>>,
-    mut query_door_state: Query<(Entity,&mut DoorAnimationState, &mut DoorState)>,
+    mut query_door_state: Query<(Entity, &mut DoorAnimationState, &mut DoorState)>,
     keys: Res<ButtonInput<KeyCode>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
 ) {
@@ -115,13 +125,14 @@ pub fn check_door_interacting(
     let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
-    if !keys.just_pressed(KeyCode::KeyQ) {
+    if !keys.just_pressed(INTERACT_KEYCODE) {
         return;
     }
 
     for (door, door_collider) in query_doors.iter_mut() {
-        let (door_entity, mut animation_state, mut door_state) = query_door_state.get_mut(door.get()).unwrap();
-        
+        let (door_entity, mut animation_state, mut door_state) =
+            query_door_state.get_mut(door.get()).unwrap();
+
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
             if inventory.num_keys >= 1 {
                 println!("UNLOCKING DOOR");

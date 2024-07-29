@@ -32,7 +32,7 @@ fn main() {
             
         )
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(24.))
-        .add_plugins(RapierDebugRenderPlugin::default())
+        // .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins((
             CameraManagementPlugin,
             LevelManagementPlugin,
