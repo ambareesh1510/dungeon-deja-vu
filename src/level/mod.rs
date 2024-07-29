@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
+use bevy_ecs_tilemap::tiles::TileTextureIndex;
 use bevy_rapier2d::prelude::*;
 use tiles::spawn_wall_collision;
 
@@ -23,6 +24,7 @@ impl Plugin for LevelManagementPlugin {
             .register_ldtk_int_cell::<SpikeBundle>(4)
             .add_systems(Startup, spawn_ldtk_world)
             .add_systems(Update, spawn_wall_collision)
+            .add_systems(Update, init_spike_textures)
             .add_systems(OnEnter(LevelLoadingState::Loading), load_level)
             .add_systems(
                 Update,
@@ -150,14 +152,20 @@ impl Default for WaterBundle {
 }
 
 #[derive(Default, Component)]
-struct SpikeMarker;
+pub struct SpikeMarker;
+
+#[derive(Default, Component)]
+pub struct SpikeInfo {
+    pub is_blue: bool,
+}
 
 #[derive(Bundle, LdtkIntCell)]
-struct SpikeBundle {
+pub struct SpikeBundle {
     spike_marker: SpikeMarker,
     kill_player_marker: KillPlayerMarker,
     collider: Collider,
     sensor: Sensor,
+    info: SpikeInfo,
 }
 
 impl Default for SpikeBundle {
@@ -167,6 +175,19 @@ impl Default for SpikeBundle {
             kill_player_marker: KillPlayerMarker,
             collider: Collider::cuboid(4.5, 4.5),
             sensor: Sensor,
+            info: SpikeInfo {
+                is_blue: rand::random::<f32>() < 0.2,
+            },
+        }
+    }
+}
+
+pub fn init_spike_textures(
+    mut q_spikes: Query<(&SpikeInfo, &mut TileTextureIndex), Added<SpikeMarker>>,
+) {
+    for (spike_info, mut tile_index) in q_spikes.iter_mut() {
+        if spike_info.is_blue {
+            *tile_index = TileTextureIndex(tile_index.0 + 1);
         }
     }
 }
