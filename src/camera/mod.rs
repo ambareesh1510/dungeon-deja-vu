@@ -34,7 +34,6 @@ impl Plugin for CameraManagementPlugin {
             .add_systems(
                 Update,
                 (
-                    // undim_camera,
                     pan_camera,
                     setup_camera,
                     attach_player_camera_to_player,
