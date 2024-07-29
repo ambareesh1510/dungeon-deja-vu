@@ -21,7 +21,7 @@ pub fn create_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) 
         .spawn(camera)
         .insert(UI_RENDER_LAYER)
         .insert(MenuCameraMarker);
-    let background_sprite_handle = asset_server.load("backgroundwindows.png");
+    let background_sprite_handle = asset_server.load("backgroundnowindows.png");
     let background_sprite_size = 128.;
     for x in -10..10 {
         for y in -10..10 {
