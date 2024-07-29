@@ -139,7 +139,7 @@ pub fn check_door_interacting(
 
         if rapier_context.intersection_pair(player_collider, door_collider) == Some(true) {
             if inventory.num_keys >= 1 {
-                println!("UNLOCKING DOOR");
+                // println!("UNLOCKING DOOR");
                 sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Door));
                 door_state.unlocked = true;
                 *animation_state = DoorAnimationState::Opening;
@@ -148,7 +148,7 @@ pub fn check_door_interacting(
                 // atlas.index = 1;
                 checkpoint_event_writer.send(SetCheckpointEvent);
             } else {
-                println!("NEED KEY FOR DOOR");
+                // println!("NEED KEY FOR DOOR");
             }
         }
     }

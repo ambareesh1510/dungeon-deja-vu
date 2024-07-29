@@ -169,7 +169,6 @@ pub fn handle_main_menu_clicks(
             return;
         }
         next_state.set(LevelLoadingState::LevelSelect);
-        println!("entering level select");
     }
 }
 

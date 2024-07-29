@@ -154,7 +154,7 @@ pub fn check_lever_interacting(
             continue;
         }
 
-        println!("SWITCHING LEVER {}", lever_state.id);
+        // println!("SWITCHING LEVER {}", lever_state.id);
         sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Lever));
         if lever_state.activated {
             *animation_state = LeverAnimationState::RightToLeft;

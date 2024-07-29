@@ -90,7 +90,7 @@ pub fn check_double_jump_acquire(
         if rapier_context.intersection_pair(player_collider, dj_sensor_entity) == Some(true) {
             sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::BigPowerup));
             inventory.max_extra_jumps += 1;
-            println!("PLAYER EXTRA JUMPS {:?}", inventory.max_extra_jumps);
+            // println!("PLAYER EXTRA JUMPS {:?}", inventory.max_extra_jumps);
             commands.entity(dj_entity).despawn_recursive();
             checkpoint_event_writer.send(SetCheckpointEvent);
         }

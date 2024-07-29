@@ -90,7 +90,7 @@ pub fn check_wall_jump_acquire(
         if rapier_context.intersection_pair(player_collider, dj_sensor_entity) == Some(true) {
             sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::BigPowerup));
             inventory.has_wall_jump = true;
-            println!("PLAYER ENABLED WALL JUMPS");
+            // println!("PLAYER ENABLED WALL JUMPS");
             commands.entity(dj_entity).despawn_recursive();
             checkpoint_event_writer.send(SetCheckpointEvent);
         }

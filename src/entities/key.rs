@@ -87,7 +87,7 @@ pub fn check_key_interacting(
     for (key, key_sensor_entity) in query_keys.iter_mut() {
         let key_entity = &mut query_key_entity.get_mut(key.get()).unwrap();
         if rapier_context.intersection_pair(player_collider, key_sensor_entity) == Some(true) {
-            println!("GOT KEY");
+            // println!("GOT KEY");
             sound_effect_event_writer.send(SoundEffectEvent(SoundEffectType::Key));
             inventory.num_keys += 1;
             commands.entity(*key_entity).despawn_recursive();

@@ -78,7 +78,7 @@ pub fn show_textbox(
     *transform = Transform::from_xyz(0., unit_height / 2. + HUD_PADDING.y * pixel_scaling, 0.);
 
     for event in textbox_events.read() {
-        println!("SET TEXT TO {}", &event.text);
+        // println!("SET TEXT TO {}", &event.text);
         text.sections.clear();
         text.sections.push(TextSection {
             value: event.text.clone(),

@@ -289,7 +289,7 @@ fn update_player_grounded(
 
     if grounded && (*player_state == PlayerState::Falling || *player_state == PlayerState::Sliding)
     {
-        println!("Resetting jump");
+        // println!("Resetting jump");
         *player_state = PlayerState::FallingToIdle;
     } else if !grounded
         && *player_state == PlayerState::Sliding
@@ -432,7 +432,7 @@ pub fn move_player(
                 wall_jump = true;
                 player_inventory.wall_jump_cd[0].reset();
                 // if they use the wall jump, reset their double jump
-                println!("wall jump");
+                // println!("wall jump");
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.has_wall_jump
                 && player_inventory.on_wall[1]
@@ -442,7 +442,7 @@ pub fn move_player(
                 can_jump = true;
                 wall_jump = true;
                 player_inventory.wall_jump_cd[1].reset();
-                println!("wall jump");
+                // println!("wall jump");
                 // if they use the wall jump, reset their double jump
                 player_inventory.extra_jumps = player_inventory.max_extra_jumps;
             } else if player_inventory.extra_jumps >= 1 {
@@ -504,10 +504,10 @@ pub fn loop_player(
         if player_transform.translation.x < 0. {
             player_transform.translation.x += width;
             camera_transform.translation.x += width;
-            println!(
-                "looped camera transform is {}",
-                camera_transform.translation.x
-            )
+            // println!(
+            //     "looped camera transform is {}",
+            //     camera_transform.translation.x
+            // )
         } else if player_transform.translation.x > width {
             player_transform.translation.x -= width;
             camera_transform.translation.x -= width;
@@ -532,7 +532,7 @@ fn set_player_checkpoint(
     };
     for SetCheckpointEvent in checkpoint_events.read() {
         player_checkpoint.transform = player_transform.translation.xy();
-        println!("set player checkpoint to {}", player_checkpoint.transform)
+        // println!("set player checkpoint to {}", player_checkpoint.transform)
     }
 }
 
