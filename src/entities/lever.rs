@@ -138,13 +138,21 @@ pub fn check_lever_interacting(
         With<PlatformMarker>,
     >,
     keys: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
     mut checkpoint_event_writer: EventWriter<SetCheckpointEvent>,
     mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
+    let gamepad = match gamepads.iter().next() {
+        Some(gp) => gp,
+        None => Gamepad::new(0),
+    };
     let Ok(player_collider) = query_player_collider.get_single() else {
         return;
     };
-    if !keys.just_pressed(INTERACT_KEYCODE) {
+    if !keys.just_pressed(INTERACT_KEYCODE)
+        && !button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::West))
+    {
         return;
     }
 
