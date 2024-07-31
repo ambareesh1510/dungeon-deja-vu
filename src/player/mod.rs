@@ -330,9 +330,22 @@ pub fn move_player(
     >,
     camera_panning_state: Res<CameraPanning>,
     keys: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
+    axes: Res<Axis<GamepadAxis>>,
     time: Res<Time>,
     mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
+    let gamepad = match gamepads.iter().next() {
+        Some(gp) => gp,
+        None => Gamepad::new(0),
+    };
+
+    let left_stick_x = match axes.get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX)) {
+        Some(x) => x,
+        None => 0.0,
+    };
+
     if let Ok((
         mut player_velocity,
         mut sprite,
@@ -365,7 +378,7 @@ pub fn move_player(
         {
             return;
         }
-        if keys.pressed(KeyCode::ArrowRight) {
+        if keys.pressed(KeyCode::ArrowRight) || left_stick_x > 0.1 {
             player_velocity.linvel += VELOCITY;
             if *player_state == PlayerState::MovingLeft || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingRight;
@@ -378,7 +391,7 @@ pub fn move_player(
             }
             moved = true;
         }
-        if keys.pressed(KeyCode::ArrowLeft) {
+        if keys.pressed(KeyCode::ArrowLeft) || left_stick_x < -0.1 {
             player_velocity.linvel -= VELOCITY;
             if *player_state == PlayerState::MovingRight || *player_state == PlayerState::Idle {
                 *player_state = PlayerState::MovingLeft;
@@ -405,11 +418,15 @@ pub fn move_player(
                 *player_state = PlayerState::MovingToIdle;
             }
         }
-        if ((keys.just_pressed(KeyCode::ArrowUp) || keys.just_pressed(KeyCode::KeyZ))
+        if ((keys.just_pressed(KeyCode::ArrowUp)
+            || keys.just_pressed(KeyCode::KeyZ)
+            || button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::South)))
             || !player_status.jump_buffer.finished())
             && player_status.jump_cooldown.finished()
         {
-            if keys.just_pressed(KeyCode::ArrowUp) {
+            if keys.just_pressed(KeyCode::ArrowUp)
+                || button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::South))
+            {
                 player_status.jump_buffer.reset();
             }
             let mut can_jump = false;
@@ -546,8 +563,15 @@ pub fn kill_player(
     >,
     rapier_context: Res<RapierContext>,
     keys: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
     mut sound_effect_event_writer: EventWriter<SoundEffectEvent>,
 ) {
+    let gamepad = match gamepads.iter().next() {
+        Some(gp) => gp,
+        None => Gamepad::new(0),
+    };
+
     let Ok(mut player_status) = query_player.get_single_mut() else {
         return;
     };
@@ -557,7 +581,9 @@ pub fn kill_player(
 
     let mut kill_player = false;
     let mut spike_kill = false;
-    if keys.just_pressed(KeyCode::KeyR) {
+    if keys.just_pressed(KeyCode::KeyR)
+        || button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::North))
+    {
         kill_player = true;
     } else {
         for hazard in query_hazards.iter() {
@@ -591,12 +617,21 @@ pub fn kill_player(
 
 fn exit_level(
     keys: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
     mut query_player: Query<&mut PlayerStatus, With<PlayerMarker>>,
 ) {
+    let gamepad = match gamepads.iter().next() {
+        Some(gp) => gp,
+        None => Gamepad::new(0),
+    };
+
     let Ok(mut player_status) = query_player.get_single_mut() else {
         return;
     };
-    if keys.just_pressed(KeyCode::Escape) {
+    if keys.just_pressed(KeyCode::Escape)
+        || button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::Start))
+    {
         player_status.exiting = true;
     }
 }

@@ -94,8 +94,16 @@ fn update_muted(
     mut muted: ResMut<AudioMuted>,
     keys: Res<ButtonInput<KeyCode>>,
     query_bgm: Query<&AudioSink, With<BackgroundMusicMarker>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyM) {
+    let gamepad = match gamepads.iter().next() {
+        Some(gp) => gp,
+        None => Gamepad::new(0),
+    };
+    if keys.just_pressed(KeyCode::KeyM)
+        || button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::Select))
+    {
         muted.0 = !muted.0;
         let Ok(bgm) = query_bgm.get_single() else {
             return;

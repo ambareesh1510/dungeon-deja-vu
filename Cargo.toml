@@ -9,6 +9,7 @@ bevy = { version = "0.14.0", default-features = false, features = [
     "bevy_winit",
     "bevy_core_pipeline",
     "bevy_render",
+    "bevy_gilrs",
     "bevy_text",
     "bevy_ui",
     "multi_threaded",
@@ -19,7 +20,7 @@ bevy = { version = "0.14.0", default-features = false, features = [
     "shader_format_glsl",
     "wav",
     "bevy_state",
-    "webgl2"
+    "webgl2",
 ] }
 bevy_ecs_ldtk = { version = "0.10.0", features = ["atlas"] }
 bevy_ecs_tilemap = "0.14.0"
@@ -36,6 +37,3 @@ opt-level = 3
 
 [profile.release]
 opt-level = "z"
-
-
-
